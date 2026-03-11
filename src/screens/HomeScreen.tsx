@@ -3,7 +3,7 @@ import "../../global.css";
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StatusBar, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
-import { MapPin, Zap, ShoppingCart, User, Search, Gift } from 'lucide-react-native';
+import { MapPin, Zap, ShoppingCart, User, Search, Gift, PackageOpen, Sparkles, Compass, Flame, Sun, Moon } from 'lucide-react-native';
 import { TextInput } from 'react-native';
 
 // Components
@@ -15,6 +15,9 @@ import { FlashReplenish } from '../components/FlashReplenish';
 import { LoopEngine } from '../components/LoopEngine';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { SocialTicker } from '../components/SocialTicker';
+import { RecipeSection } from '../components/RecipeSection';
+import { PriceDropRoulette } from '../components/PriceDropRoulette';
+import { RoutineSection } from '../components/RoutineSection';
 
 // Hooks
 import { useHapticArrival } from '../hooks/useHapticArrival';
@@ -33,9 +36,26 @@ export default function HomeScreen({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const { startSimulation } = useHapticArrival();
-  const { cartItems } = useCart();
+  const { cartItems, addToCart } = useCart();
   const { isServicable, activeWarehouse, setUserLocation } = useLocation();
   const { showNotification } = useNotification();
+  
+  // Dynamic Time-of-Day logic
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+  const isNight = currentHour >= 18 || currentHour < 5; // 6 PM to 4:59 AM is Night
+  
+  // Dynamic themes based on time
+  const theme = {
+      bg: 'bg-white', // Forced White Background
+      surface: 'bg-white', // Forced White Surface
+      textPrimary: isNight ? 'text-gray-900' : 'text-text-primary',
+      textSecondary: isNight ? 'text-gray-600' : 'text-text-secondary',
+      border: isNight ? 'border-gray-200' : 'border-gray-200',
+      greetingPill: isNight ? 'bg-indigo-100 border-indigo-200' : 'bg-orange-100 border-orange-200',
+      greetingText: isNight ? 'text-indigo-600' : 'text-orange-600',
+      greetingMessage: isNight ? 'Late Night Cravings?' : 'Good Morning!',
+      greetingIcon: isNight ? Moon : Sun,
+  };
 
   const categories = useMemo(() => ["All", "Fresh", "Snacks", "Drinks", "Electronics", "Groceries", "Essentials"], []);
 
@@ -94,35 +114,47 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView className="flex-1 bg-ui-background">
-        <StatusBar barStyle="dark-content" />
+      <SafeAreaView className={`flex-1 ${theme.bg}`}>
+        <StatusBar barStyle={isNight ? "light-content" : "dark-content"} />
 
         {/* Header */}
-        <View className="px-4 py-3 flex-row items-center justify-between bg-ui-background">
+        <View className={`px-4 py-3 flex-row items-center justify-between ${theme.bg}`}>
           <View>
+            <View className="flex-row items-center mb-1">
+                <View className={`px-2 py-0.5 rounded-md flex-row items-center border ${theme.greetingPill}`}>
+                    <theme.greetingIcon size={10} color={isNight ? "#A5B4FC" : "#EA580C"} />
+                    <Text className={`font-black text-[10px] ml-1 uppercase tracking-wider ${theme.greetingText}`}>{theme.greetingMessage}</Text>
+                </View>
+            </View>
             <View className="flex-row items-center">
-              <Text className="text-brand-primary font-black text-2xl tracking-tighter mr-2">JOINZO</Text>
+              <Text className={`${theme.textPrimary} font-black text-2xl tracking-tighter mr-2`}>JOINZO</Text>
               {isServicable && <CountdownTimer minutes={10} />}
             </View>
             <View className="flex-row items-center mt-2">
               <MapPin size={12} color={isServicable ? "#5A189A" : "#EF4444"} />
-              <Text className="text-text-secondary text-xs ml-1 font-medium">
+              <Text className={`${theme.textSecondary} text-xs ml-1 font-medium`}>
                 {isServicable ? `From ${activeWarehouse?.name}` : 'Out of delivery zone'}
               </Text>
             </View>
           </View>
           <View className="flex-row items-center space-x-3">
             <TouchableOpacity
-              onPress={() => navigation.navigate('Profile')}
-              className="w-10 h-10 rounded-full bg-ui-surface items-center justify-center border border-gray-200"
+              onPress={() => navigation.navigate('Discover')}
+              className={`w-10 h-10 rounded-full items-center justify-center border ${isNight ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-brand-primary/10 border-brand-primary/20'}`}
             >
-              <User size={20} color="#5A189A" />
+              <Compass size={20} color={isNight ? "#A5B4FC" : "#5A189A"} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Profile')}
+              className={`w-10 h-10 rounded-full items-center justify-center border ${theme.surface} ${theme.border}`}
+            >
+              <User size={20} color={isNight ? "#FFF" : "#5A189A"} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate('Checkout')}
-              className="w-10 h-10 rounded-full bg-ui-surface items-center justify-center border border-gray-200"
+              className={`w-10 h-10 rounded-full items-center justify-center border ${theme.surface} ${theme.border}`}
             >
-              <ShoppingCart size={20} color="#5A189A" />
+              <ShoppingCart size={20} color={isNight ? "#FFF" : "#5A189A"} />
               {cartItems.length > 0 && (
                 <View className="absolute -top-1 -right-1 bg-brand-primary rounded-full w-4 h-4 items-center justify-center">
                   <Text className="text-[10px] font-black text-white">{cartItems.length}</Text>
@@ -135,11 +167,11 @@ export default function HomeScreen({ navigation }: any) {
         {isServicable ? (
           <>
             {/* Sticky Search Bar */}
-            <View className="px-4 pb-3 bg-ui-background shadow-sm z-10">
-              <View className="flex-row items-center bg-ui-surface border border-gray-200 rounded-2xl px-4 py-3">
+            <View className={`px-4 pb-3 shadow-sm z-10 ${theme.bg}`}>
+              <View className={`flex-row items-center border rounded-2xl px-4 py-3 ${theme.surface} ${theme.border}`}>
                 <Search size={20} color="#9CA3AF" />
                 <TextInput
-                  className="flex-1 ml-3 text-text-primary font-medium"
+                  className={`flex-1 ml-3 font-medium ${theme.textPrimary}`}
                   placeholder="Search for 'chips', 'milk', 'bread'..."
                   placeholderTextColor="#9CA3AF"
                   value={searchQuery}
@@ -152,6 +184,28 @@ export default function HomeScreen({ navigation }: any) {
 
               {/* LIVE ACTIVITY TICKER */}
               <LoopTicker />
+
+              {/* Mystery Munchies Mock */}
+              <TouchableOpacity 
+                onPress={() => {
+                  addToCart({ id: 888, name: "Mystic Munchies Bag", price: 99, qty: 1, type: "Solo" });
+                  showNotification("Mystery Bag added! Open it after delivery 🎉", "success");
+                }}
+                className="mx-4 mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 p-5 rounded-3xl flex-row items-center justify-between shadow-lg shadow-brand-primary/40 -z-0"
+                style={{ backgroundColor: '#2E1065' }} // Fallback if tailwind gradient acts up
+              >
+                <View className="flex-1 pr-4">
+                  <View className="flex-row items-center mb-1">
+                    <Sparkles size={16} color="#FBBF24" />
+                    <Text className="text-yellow-400 font-black text-xs ml-2 uppercase tracking-widest">Surprise Inside</Text>
+                  </View>
+                  <Text className="text-white font-black text-2xl tracking-tighter mt-1">Mystery Bag</Text>
+                  <Text className="text-white/80 font-bold text-xs mt-1 leading-4">Pay <Text className="text-green-400 font-black">₹99</Text> & perfectly usable overstock snacks worth <Text className="line-through">₹250+</Text>!</Text>
+                </View>
+                <View className="w-16 h-16 bg-white/10 rounded-2xl items-center justify-center border border-white/20 shadow-inner overflow-hidden">
+                    <PackageOpen size={32} color="#FBBF24" />
+                </View>
+              </TouchableOpacity>
 
               {/* Promotional Banner Mock */}
               <View className="mx-4 mt-2 bg-brand-primary p-5 rounded-3xl flex-row items-center justify-between overflow-hidden shadow-sm">
@@ -193,8 +247,32 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
               </View>
 
-              {/* ACTIVE LOOP ENGINE */}
+              {/* LIVE PRICE DROP ROULETTE */}
+              <PriceDropRoulette />
+
+              {/* RECIPE TO CART SECTION */}
+              <RecipeSection />
+
+              {/* 1-TAP ROUTINES BUILDER */}
+              <RoutineSection />
+
+              {/* ACTIVE LOOP ENGINE & HEATMAP LINK */}
               <View className="px-4">
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('Heatmap')}
+                    className="bg-red-50 border border-red-100 p-4 rounded-3xl mb-4 flex-row items-center justify-between shadow-sm"
+                >
+                    <View className="flex-row items-center flex-1">
+                        <View className="w-10 h-10 bg-red-500/20 rounded-full items-center justify-center border border-red-500/30 mr-3">
+                            <Flame size={20} color="#EF4444" />
+                        </View>
+                        <View>
+                            <Text className="text-red-600 font-black text-xs uppercase tracking-widest">Live Heatmap</Text>
+                            <Text className="text-red-900 font-bold text-sm">See what your neighbors are ordering right now.</Text>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+
                 <LoopEngine
                   itemName="Organic Whole Milk"
                   currentMembers={2}
@@ -212,8 +290,12 @@ export default function HomeScreen({ navigation }: any) {
                       <TouchableOpacity
                         key={cat}
                         onPress={() => handleCategoryPress(cat)}
-                        className={`mr-3 px-5 py-2.5 rounded-2xl border ${isActive ? 'bg-brand-primary border-brand-primary' : 'bg-ui-surface border-gray-200'}`}>
-                        <Text className={`font-bold text-sm ${isActive ? 'text-white' : 'text-text-primary'}`}>{cat}</Text>
+                        className={`mr-3 px-5 py-2.5 rounded-2xl border ${
+                            isActive 
+                                ? (isNight ? 'bg-indigo-600 border-indigo-600' : 'bg-brand-primary border-brand-primary')
+                                : `${theme.surface} ${theme.border}`
+                        }`}>
+                        <Text className={`font-bold text-sm ${isActive ? 'text-white' : theme.textPrimary}`}>{cat}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -225,20 +307,25 @@ export default function HomeScreen({ navigation }: any) {
                 {loading ? (
                   <Text className="text-text-secondary font-bold m-4 mx-auto">Loading fresh stock...</Text>
                 ) : filteredProducts.length > 0 ? (
-                  filteredProducts.map((p: any) => (
-                    <ProductCard
-                      key={p.id}
-                      id={p.id}
-                      name={p.name}
-                      priceSolo={p.price_solo}
-                      priceLoop={p.price_loop}
-                      image={p.image_url}
-                      weight={p.weight}
-                      isInStock={p.is_in_stock}
-                    />
-                  ))
+                  filteredProducts.map((p: any) => {
+                    const isExpiring = p.is_in_stock && p.id % 4 === 0; // Mock ~25% active items as expiring
+                    return (
+                      <ProductCard
+                        key={p.id}
+                        id={p.id}
+                        name={p.name}
+                        priceSolo={p.price_solo}
+                        priceLoop={p.price_loop}
+                        image={p.image_url}
+                        weight={p.weight}
+                        isInStock={p.is_in_stock}
+                        isExpiringSoon={isExpiring}
+                        discountedPrice={isExpiring ? Math.floor(p.price_solo * 0.4) : p.price_solo}
+                      />
+                    );
+                  })
                 ) : (
-                  <Text className="text-text-primary font-bold m-4 mx-auto mt-10 text-center">No products found in this category.</Text>
+                  <Text className={`${theme.textPrimary} font-bold m-4 mx-auto mt-10 text-center`}>No products found in this category.</Text>
                 )}
                 <FlashReplenish itemName="Nitro Cold Brew (V4)" onNotify={() => showNotification("Restock notification set!", "success")} />
               </View>

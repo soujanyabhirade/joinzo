@@ -9,7 +9,7 @@ module.exports = {
       colors: {
         // Clean White UI Palette (Zepto Clone)
         "ui-background": "#ffffff",
-        "ui-surface": "#f8f9fa",
+        "ui-surface": "#ffffff",
         "text-primary": "#1f2937",
         "text-secondary": "#4b5563",
         "brand-primary": "#5A189A", // Zepto Purple
@@ -21,7 +21,7 @@ module.exports = {
         "cream-bone": "#1f2937",
         "neon-green": "#5A189A",
         "deep-charcoal": "#ffffff",
-        "soft-gray": "#f8f9fa",
+        "soft-gray": "#ffffff",
       },
     },
   },

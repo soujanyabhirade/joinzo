@@ -19,6 +19,8 @@ import { CreateTeamScreen } from './src/screens/CreateTeamScreen';
 import { ConnectContactsScreen } from './src/screens/ConnectContactsScreen';
 import { TrackOrderScreen } from './src/screens/TrackOrderScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { DiscoverScreen } from './src/screens/DiscoverScreen';
+import { HeatmapScreen } from './src/screens/HeatmapScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -40,6 +42,8 @@ const RootNavigator = () => {
                     <Stack.Screen name="ConnectContacts" component={ConnectContactsScreen} />
                     <Stack.Screen name="TrackOrder" component={TrackOrderScreen} />
                     <Stack.Screen name="Profile" component={ProfileScreen} />
+                    <Stack.Screen name="Discover" component={DiscoverScreen} />
+                    <Stack.Screen name="Heatmap" component={HeatmapScreen} />
                 </>
             ) : (
                 // No session, require login

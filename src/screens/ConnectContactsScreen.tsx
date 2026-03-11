@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert, Platform } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import { Check, UserPlus, Home } from 'lucide-react-native';
 
@@ -13,20 +13,35 @@ export const ConnectContactsScreen = ({ route, navigation }: any) => {
 
     useEffect(() => {
         (async () => {
-            const { status } = await Contacts.requestPermissionsAsync();
-            if (status === 'granted') {
-                const { data } = await Contacts.getContactsAsync({
-                    fields: [Contacts.Fields.PhoneNumbers],
-                    pageSize: 50
-                });
-
-                // Filter contacts that have valid names and phone numbers
-                const validContacts = data.filter(c => c.firstName && c.phoneNumbers && c.phoneNumbers.length > 0);
-                setContacts(validContacts);
+            if (Platform.OS === 'web') {
+                // Web browsers don't support native contact reading via Expo. Provide mock data.
+                setTimeout(() => {
+                    const mockContacts = [
+                        { id: 'm1', firstName: 'Priya', lastName: 'Sharma', phoneNumbers: [{ id: 'p1', number: '+91 98765 43210', label: 'mobile' }] },
+                        { id: 'm2', firstName: 'Rahul', lastName: 'Verma', phoneNumbers: [{ id: 'p2', number: '+91 98765 43211', label: 'mobile' }] },
+                        { id: 'm3', firstName: 'Neha', lastName: 'Gupta', phoneNumbers: [{ id: 'p3', number: '+91 98765 43212', label: 'mobile' }] },
+                        { id: 'm4', firstName: 'Amit', lastName: 'Singh', phoneNumbers: [{ id: 'p4', number: '+91 98765 43213', label: 'mobile' }] },
+                        { id: 'm5', firstName: 'Anjali', lastName: 'Desai', phoneNumbers: [{ id: 'p5', number: '+91 98765 43214', label: 'mobile' }] },
+                    ] as unknown as Contacts.Contact[];
+                    setContacts(mockContacts);
+                    setLoading(false);
+                }, 800);
             } else {
-                Alert.alert("Permission Denied", "We need access to contacts to invite your neighbors!");
+                const { status } = await Contacts.requestPermissionsAsync();
+                if (status === 'granted') {
+                    const { data } = await Contacts.getContactsAsync({
+                        fields: [Contacts.Fields.PhoneNumbers],
+                        pageSize: 50
+                    });
+
+                    // Filter contacts that have valid names and phone numbers
+                    const validContacts = data.filter(c => c.firstName && c.phoneNumbers && c.phoneNumbers.length > 0);
+                    setContacts(validContacts);
+                } else {
+                    Alert.alert("Permission Denied", "We need access to contacts to invite your neighbors!");
+                }
+                setLoading(false);
             }
-            setLoading(false);
         })();
     }, []);
 
