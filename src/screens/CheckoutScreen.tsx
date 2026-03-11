@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, ActivityIndicator } from 'react-native';
-import { ShoppingBag, MapPin, ChevronRight, Info, Clock, CheckCircle, Truck, Zap, ShieldCheck, CreditCard, Smartphone, Wallet } from 'lucide-react-native';
+import { ShoppingBag, MapPin, ChevronRight, Info, Clock, CheckCircle, Truck, Zap, ShieldCheck, CreditCard, Smartphone, Wallet, Users, Recycle, Gift } from 'lucide-react-native';
 import Map, { Marker } from '../components/Map';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { useCart } from '../lib/CartContext';
@@ -8,6 +8,7 @@ import { useLocation } from '../lib/LocationContext';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { useNotification } from '../lib/NotificationContext';
+import { SwipeButton } from '../components/SwipeButton';
 
 export const CheckoutScreen = ({ navigation }: any) => {
     const [apartment, setApartment] = useState('');
@@ -15,6 +16,18 @@ export const CheckoutScreen = ({ navigation }: any) => {
     const [instructions, setInstructions] = useState('');
     const [showPayment, setShowPayment] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isNeighborhoodDrop, setIsNeighborhoodDrop] = useState(false);
+    const [bagsToReturn, setBagsToReturn] = useState(0);
+    const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+    const [cardNumber, setCardNumber] = useState('');
+    const [cardExpiry, setCardExpiry] = useState('');
+    const [cardCVV, setCardCVV] = useState('');
+    
+    // Gifting Mode State
+    const [isGift, setIsGift] = useState(false);
+    const [giftMessage, setGiftMessage] = useState('');
+    const [giftCard, setGiftCard] = useState<'birthday' | 'getwell' | 'congrats' | null>(null);
+
     const { cartItems, getCartTotal, clearCart } = useCart();
     const { isServicable, savedAddresses } = useLocation();
     const { user } = useAuth();
@@ -30,8 +43,12 @@ export const CheckoutScreen = ({ navigation }: any) => {
     // 3. Smart Batching Discount (₹15 off if neighbor at same gate)
     const batchDiscount = gate ? 15 : 0;
 
+    // 4. Neighborhood & Eco Features
+    const neighborhoodDiscount = isNeighborhoodDrop ? total * 0.15 : 0;
+    const bagReturnCredit = bagsToReturn * 5;
+
     // Final Math
-    const finalTotal = Math.max(0, total - batchDiscount);
+    const finalTotal = Math.max(0, total - batchDiscount - neighborhoodDiscount - bagReturnCredit);
 
     const handlePayment = async (methodId: string) => {
         if (isProcessing) return; // Debounce mechanism
@@ -173,6 +190,54 @@ export const CheckoutScreen = ({ navigation }: any) => {
                     />
                 </View>
 
+                {/* Community & Eco Features */}
+                <View className="mb-6 space-y-4">
+                    {/* Neighborhood Drop */}
+                    <TouchableOpacity 
+                        onPress={() => setIsNeighborhoodDrop(!isNeighborhoodDrop)}
+                        className={`bg-ui-surface border rounded-3xl p-5 mb-4 flex-row items-center justify-between shadow-sm overflow-hidden ${isNeighborhoodDrop ? 'border-brand-primary' : 'border-gray-200'}`}
+                    >
+                        <View className="flex-1 pr-4">
+                            <View className="flex-row items-center mb-1">
+                                <Users size={16} color={isNeighborhoodDrop ? "#5A189A" : "#9CA3AF"} />
+                                <Text className={`font-black ml-2 text-xs ${isNeighborhoodDrop ? 'text-brand-primary' : 'text-text-secondary'}`}>NEIGHBORHOOD MATCH</Text>
+                            </View>
+                            <Text className="text-text-primary text-xs font-bold mt-1">Pool your order with neighbors within 15 mins for <Text className="text-brand-primary">15% OFF</Text>.</Text>
+                        </View>
+                        <View className={`w-6 h-6 rounded-full border-2 items-center justify-center ${isNeighborhoodDrop ? 'bg-brand-primary border-brand-primary' : 'border-gray-300'}`}>
+                            {isNeighborhoodDrop && <CheckCircle size={14} color="#FFFFFF" />}
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Return Bags */}
+                    <View className="bg-ui-surface border border-gray-200 rounded-3xl p-5 shadow-sm">
+                        <View className="flex-row items-center mb-3">
+                            <Recycle size={18} color="#10B981" />
+                            <Text className="text-text-primary font-black ml-2 text-xs">RETURN DELIVERY BAGS</Text>
+                        </View>
+                        <Text className="text-text-secondary text-[11px] font-bold mb-4">Give your empty Joinzo bags to the rider for instant wallet credit (₹5/bag).</Text>
+                        
+                        <View className="flex-row items-center justify-between bg-ui-background p-2 rounded-2xl border border-gray-200">
+                            <TouchableOpacity 
+                                onPress={() => setBagsToReturn(Math.max(0, bagsToReturn - 1))}
+                                className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm"
+                            >
+                                <Text className="text-text-primary font-black text-xl">-</Text>
+                            </TouchableOpacity>
+                            <View className="items-center">
+                                <Text className="text-text-primary font-black text-xl">{bagsToReturn}</Text>
+                                <Text className="text-text-secondary text-[10px] font-bold uppercase">Bags</Text>
+                            </View>
+                            <TouchableOpacity 
+                                onPress={() => setBagsToReturn(bagsToReturn + 1)}
+                                className="w-10 h-10 bg-brand-primary rounded-xl items-center justify-center shadow-sm"
+                            >
+                                <Text className="text-white font-black text-xl mb-1">+</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+
                 {/* Cart Summary */}
                 <View className="bg-ui-surface border border-gray-200 rounded-3xl p-5 mb-6">
                     <Text className="text-text-secondary font-bold text-xs uppercase mb-4 tracking-widest">Order Summary</Text>
@@ -216,6 +281,20 @@ export const CheckoutScreen = ({ navigation }: any) => {
                         <View className="flex-row justify-between items-center mb-2">
                             <Text className="text-brand-primary font-bold">Smart Batch Discount</Text>
                             <Text className="text-brand-primary font-black">-₹{batchDiscount}</Text>
+                        </View>
+                    )}
+
+                    {neighborhoodDiscount > 0 && (
+                        <View className="flex-row justify-between items-center mb-2">
+                            <Text className="text-brand-primary font-bold">Neighborhood Match (15%)</Text>
+                            <Text className="text-brand-primary font-black">-₹{neighborhoodDiscount.toFixed(0)}</Text>
+                        </View>
+                    )}
+
+                    {bagReturnCredit > 0 && (
+                        <View className="flex-row justify-between items-center mb-2">
+                            <Text className="text-green-500 font-bold">Bag Return Credit</Text>
+                            <Text className="text-green-500 font-black">-₹{bagReturnCredit}</Text>
                         </View>
                     )}
 
@@ -274,28 +353,137 @@ export const CheckoutScreen = ({ navigation }: any) => {
                         <Text className="text-text-secondary font-bold text-sm mb-6">Total Amount: <Text className="text-brand-primary text-xl tracking-tight">₹{finalTotal}</Text></Text>
 
                         {/* Payment Options */}
-                        <View className="gap-3 mb-8">
+                        <View className="gap-3 mb-6">
                             {[
                                 { id: 'upi', name: 'UPI (GPay, PhonePe)', icon: Smartphone },
                                 { id: 'card', name: 'Credit / Debit Card', icon: CreditCard },
                                 { id: 'wallet', name: 'Joinzo Wallet', icon: Wallet }
                             ].map((method) => (
-                                <TouchableOpacity
-                                    key={method.id}
-                                    onPress={() => handlePayment(method.id)}
-                                    disabled={isProcessing}
-                                    className={`bg-ui-surface border border-gray-200 rounded-2xl p-4 flex-row items-center justify-between ${isProcessing ? 'opacity-50' : ''}`}
-                                >
-                                    <View className="flex-row items-center">
-                                        <View className="w-10 h-10 bg-brand-primary/10 rounded-full items-center justify-center border border-brand-primary/20">
-                                            <method.icon size={20} color="#5A189A" />
+                                <View key={method.id} className="mb-2">
+                                    <TouchableOpacity
+                                        onPress={() => setSelectedMethod(selectedMethod === method.id ? null : method.id)}
+                                        disabled={isProcessing}
+                                        className={`bg-ui-surface border rounded-2xl p-4 flex-row items-center justify-between shadow-sm ${selectedMethod === method.id ? 'border-brand-primary bg-brand-primary/5' : 'border-gray-200'} ${isProcessing ? 'opacity-50' : ''}`}
+                                    >
+                                        <View className="flex-row items-center">
+                                            <View className={`w-10 h-10 rounded-full items-center justify-center border ${selectedMethod === method.id ? 'bg-brand-primary border-brand-primary' : 'bg-ui-background border-gray-200'}`}>
+                                                <method.icon size={20} color={selectedMethod === method.id ? "#FFF" : "#5A189A"} />
+                                            </View>
+                                            <Text className={`font-bold text-lg ml-4 ${selectedMethod === method.id ? 'text-brand-primary' : 'text-text-primary'}`}>{method.name}</Text>
                                         </View>
-                                        <Text className="text-text-primary font-bold text-lg ml-4">{method.name}</Text>
-                                    </View>
-                                    <ChevronRight size={20} color="#9CA3AF" />
-                                </TouchableOpacity>
+                                        {selectedMethod !== 'card' || method.id !== 'card' ? (
+                                             <ChevronRight size={20} color={selectedMethod === method.id ? "#5A189A" : "#9CA3AF"} />
+                                        ) : null}
+                                    </TouchableOpacity>
+
+                                    {/* Expandable Mock Card Form */}
+                                    {selectedMethod === 'card' && method.id === 'card' && (
+                                        <View className="bg-ui-surface p-4 rounded-b-2xl border-x border-b border-brand-primary/20 mt-[-8px] pt-4 mb-2">
+                                            <Text className="text-text-secondary text-[10px] font-bold uppercase mb-2 ml-1 mt-2">Card Details (Mock)</Text>
+                                            <TextInput
+                                                className="bg-ui-background border border-gray-200 rounded-xl px-4 py-3 text-text-primary font-medium mb-3"
+                                                placeholder="16-Digit Card Number"
+                                                keyboardType="numeric"
+                                                maxLength={16}
+                                                value={cardNumber}
+                                                onChangeText={setCardNumber}
+                                            />
+                                            <View className="flex-row gap-3 mb-4">
+                                                <TextInput
+                                                    className="flex-1 bg-ui-background border border-gray-200 rounded-xl px-4 py-3 text-text-primary font-medium text-center"
+                                                    placeholder="MM/YY"
+                                                    keyboardType="numeric"
+                                                    maxLength={5}
+                                                    value={cardExpiry}
+                                                    onChangeText={setCardExpiry}
+                                                />
+                                                <TextInput
+                                                    className="flex-1 bg-ui-background border border-gray-200 rounded-xl px-4 py-3 text-text-primary font-medium text-center"
+                                                    placeholder="CVV"
+                                                    keyboardType="numeric"
+                                                    maxLength={3}
+                                                    secureTextEntry
+                                                    value={cardCVV}
+                                                    onChangeText={setCardCVV}
+                                                />
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
                             ))}
                         </View>
+
+                        {/* GIFTING CORE FEATURE */}
+                        <View className="bg-ui-surface p-6 mb-6 rounded-3xl border border-pink-100 shadow-sm">
+                            <View className="flex-row items-center justify-between mb-2">
+                                <View className="flex-row items-center">
+                                    <View className="w-8 h-8 rounded-full bg-pink-500/10 items-center justify-center mr-3 border border-pink-500/20">
+                                        <Gift size={16} color="#EC4899" />
+                                    </View>
+                                    <Text className="text-text-primary font-black text-lg">Send as a Gift?</Text>
+                                </View>
+                                <TouchableOpacity 
+                                    onPress={() => setIsGift(!isGift)}
+                                    className={`w-12 h-6 rounded-full px-1 justify-center transition-colors ${isGift ? 'bg-pink-500' : 'bg-gray-200'}`}
+                                >
+                                    <View className={`w-4 h-4 rounded-full bg-white transition-transform ${isGift ? 'translate-x-6' : 'translate-x-0'}`} />
+                                </TouchableOpacity>
+                            </View>
+
+                            {isGift && (
+                                <View className="mt-4 bg-pink-50 rounded-2xl p-4 border border-pink-100">
+                                    <Text className="text-pink-800 font-bold mb-3 uppercase tracking-widest text-xs">Select Virtual Card</Text>
+                                    <View className="flex-row justify-between mb-4">
+                                        {['birthday', 'getwell', 'congrats'].map((type) => (
+                                            <TouchableOpacity 
+                                                key={type}
+                                                onPress={() => setGiftCard(type as any)}
+                                                className={`flex-1 py-3 rounded-xl border items-center mx-1 ${giftCard === type ? 'bg-pink-100 border-pink-400' : 'bg-white border-pink-100'}`}
+                                            >
+                                                <Text className="text-xl mb-1">{type === 'birthday' ? '🎂' : type === 'getwell' ? '🍲' : '🎉'}</Text>
+                                                <Text className={`text-[10px] font-black uppercase ${giftCard === type ? 'text-pink-600' : 'text-gray-400'}`}>{type}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                    <TextInput
+                                        className="bg-white border border-pink-200 rounded-xl p-3 text-text-primary font-medium min-h-[80px]"
+                                        placeholder="Write a warm message..."
+                                        placeholderTextColor="#F472B6"
+                                        multiline
+                                        value={giftMessage}
+                                        onChangeText={setGiftMessage}
+                                        textAlignVertical="top"
+                                    />
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Master Swipe-To-Pay Button */}
+                        {(!selectedMethod || isProcessing) ? (
+                            <TouchableOpacity
+                                disabled={true}
+                                className="py-4 rounded-2xl flex-row justify-center shadow-lg mb-6 bg-gray-300"
+                            >
+                                <ShieldCheck size={20} color="#FFFFFF" className="mr-2" />
+                                <Text className="text-white font-black text-lg">
+                                    {isProcessing ? 'Processing SECURELY...' : `SELECT PAYMENT METHOD`}
+                                </Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <View className="mb-6">
+                                <SwipeButton 
+                                    title="Swipe to Confirm Order" 
+                                    amount={finalTotal} 
+                                    onSwipeSuccess={() => {
+                                        if (selectedMethod === 'card' && (cardNumber.length < 16 || cardExpiry.length < 5 || cardCVV.length < 3)) {
+                                            Alert.alert("Invalid Card Details", "Please fill out the mock card details completely (16 digits, MM/YY, CVV).");
+                                            return;
+                                        }
+                                        handlePayment(selectedMethod || 'wallet');
+                                    }} 
+                                />
+                            </View>
+                        )}
 
                         {isProcessing && (
                             <View className="absolute inset-0 bg-ui-background/80 items-center justify-center rounded-t-3xl">

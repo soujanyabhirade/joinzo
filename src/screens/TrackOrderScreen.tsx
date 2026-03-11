@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { Truck, MapPin, Package, CheckCircle2, ChevronLeft, PhoneCall, XCircle } from 'lucide-react-native';
+import { Truck, MapPin, Package, CheckCircle2, ChevronLeft, PhoneCall, XCircle, Plus, Navigation, Gift, PartyPopper } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
+import Map, { Marker } from '../components/Map';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { useNotification } from '../lib/NotificationContext';
 import { Alert, Platform } from 'react-native';
@@ -12,6 +13,13 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
     const [showConfetti, setShowConfetti] = useState(route.params?.triggerConfetti || false);
     const [secondsRemaining, setSecondsRemaining] = useState(60);
     const [canCancel, setCanCancel] = useState(true);
+    const [spinState, setSpinState] = useState<'idle' | 'spinning' | 'won' | 'lost'>('idle');
+    const [unboxingClicks, setUnboxingClicks] = useState(0);
+
+    // Mock Driver Location
+    const destination = { latitude: 12.9716, longitude: 77.5946 };
+    const initialDriver = { latitude: 12.9650, longitude: 77.5880 }; 
+    const [driverLoc, setDriverLoc] = useState(initialDriver);
 
     useEffect(() => {
         if (showConfetti) {
@@ -79,6 +87,59 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
         };
     }, []);
 
+    // Simulate Driver Movement when Out for Delivery
+    useEffect(() => {
+        if (progress === 3) {
+            const endLat = destination.latitude;
+            const endLng = destination.longitude;
+            let currentLat = driverLoc.latitude;
+            let currentLng = driverLoc.longitude;
+            
+            // Move driver ~60 times to get to destination
+            const latStep = (endLat - currentLat) / 60;
+            const lngStep = (endLng - currentLng) / 60;
+
+            const moveInterval = setInterval(() => {
+                setDriverLoc(prev => {
+                    const newLat = prev.latitude + latStep;
+                    const newLng = prev.longitude + lngStep;
+                    
+                    // Stop if reached roughly destination
+                    if (Math.abs(endLat - newLat) < 0.0001 && Math.abs(endLng - newLng) < 0.0001) {
+                        clearInterval(moveInterval);
+                        return destination;
+                    }
+                    return { latitude: newLat, longitude: newLng };
+                });
+            }, 1000); // Step every second
+
+            return () => clearInterval(moveInterval);
+        }
+    }, [progress]);
+
+    const handleSpin = () => {
+        setSpinState('spinning');
+        setTimeout(() => {
+            // High chance to win for dopamine hit in demo
+            if (Math.random() > 0.2) {
+                setSpinState('won');
+                setShowConfetti(true);
+                showNotification("JACKPOT! We matched your ₹30 tip!", "success");
+            } else {
+                setSpinState('lost');
+                showNotification("Aww, better luck next time!", "info");
+            }
+        }, 2000);
+    };
+
+    const handleBoxTap = () => {
+        setUnboxingClicks(c => c + 1);
+        if (unboxingClicks === 2) {
+            setShowConfetti(true);
+            showNotification("Box Opened! Welcome to your digital receipt.", "success");
+        }
+    };
+
     const steps = [
         { id: 1, title: 'Order Placed', desc: 'We have received your order', icon: Package },
         { id: 2, title: 'Item Packed', desc: 'Rider is picking up from the hub', icon: CheckCircle2 },
@@ -138,6 +199,119 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
                     </View>
                 </View>
 
+                {/* Delivered Gamification State */}
+                {progress >= 4 && (
+                    <View className="mb-8">
+                        {unboxingClicks < 3 ? (
+                            <TouchableOpacity 
+                                onPress={handleBoxTap} 
+                                activeOpacity={0.8}
+                                className="bg-brand-primary p-8 rounded-3xl items-center shadow-lg shadow-brand-primary/40 border border-indigo-500 overflow-hidden"
+                            >
+                                <View className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full" />
+                                <View className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/5 rounded-full" />
+                                
+                                <Package size={64} color="#FFF" />
+                                <Text className="text-white font-black text-3xl mt-4 text-center tracking-tight">Your Order is Here!</Text>
+                                <Text className="text-white/80 font-bold text-center mt-2 mb-4 text-sm uppercase tracking-widest">
+                                    Tap {3 - unboxingClicks} more times to unbox
+                                </Text>
+                                
+                                <View className="bg-white/20 px-6 py-3 rounded-full animate-bounce">
+                                    <Text className="text-white font-black text-lg">TAP THE BOX 👆</Text>
+                                </View>
+                            </TouchableOpacity>
+                        ) : (
+                            <View className="bg-white p-6 rounded-3xl items-center shadow-lg border border-brand-primary/20">
+                                <View className="w-16 h-16 bg-brand-primary/10 rounded-full items-center justify-center mb-4 border border-brand-primary/20">
+                                    <PartyPopper size={32} color="#5A189A" />
+                                </View>
+                                <Text className="text-text-primary font-black text-3xl mt-2 text-center tracking-tight text-brand-primary">Receipt Unlocked</Text>
+                                <View className="w-full bg-gray-50 p-4 rounded-2xl my-4 border border-dashed border-gray-300">
+                                    <Text className="text-text-secondary font-bold text-xs uppercase mb-2">Digital Summary</Text>
+                                    <View className="flex-row justify-between mb-1">
+                                        <Text className="text-text-primary font-bold">Items Total</Text>
+                                        <Text className="text-text-primary font-black">₹399</Text>
+                                    </View>
+                                    <View className="flex-row justify-between mb-1">
+                                        <Text className="text-text-primary font-bold">Delivery Fee</Text>
+                                        <Text className="text-brand-primary font-black">FREE</Text>
+                                    </View>
+                                    <View className="flex-row justify-between">
+                                        <Text className="text-text-primary font-bold">Rider Tip</Text>
+                                        <Text className="text-text-primary font-black">₹30</Text>
+                                    </View>
+                                </View>
+
+                                <Text className="text-text-secondary font-bold text-center mt-2 mb-6 text-sm">You tipped Arjun ₹30. Play our mini-game to see if Joinzo will MATCH your tip out of our own pocket!</Text>
+                                
+                                {spinState === 'idle' && (
+                                    <TouchableOpacity 
+                                        onPress={handleSpin}
+                                        className="bg-brand-primary px-8 py-4 rounded-3xl flex-row items-center w-full justify-center shadow-md border-b-4 border-indigo-900"
+                                    >
+                                        <Gift size={20} color="#FFF" className="mr-2" />
+                                        <Text className="text-white font-black text-lg uppercase tracking-widest">Spin To Double Tip</Text>
+                                    </TouchableOpacity>
+                                )}
+
+                                {spinState === 'spinning' && (
+                                    <View className="bg-brand-primary/50 px-8 py-4 rounded-3xl flex-row items-center w-full justify-center border border-brand-primary/30">
+                                        <Text className="text-white font-black text-lg uppercase tracking-widest animate-pulse">Spinning...</Text>
+                                    </View>
+                                )}
+
+                                {spinState === 'won' && (
+                                    <View className="bg-green-500 px-8 py-4 rounded-3xl flex-row items-center w-full justify-center shadow-lg border-b-4 border-green-700">
+                                        <Text className="text-white font-black text-lg uppercase tracking-widest">YOU WON! ₹30 MATCHED</Text>
+                                    </View>
+                                )}
+
+                                {spinState === 'lost' && (
+                                    <View className="bg-gray-200 px-8 py-4 rounded-3xl flex-row items-center w-full justify-center border border-gray-300">
+                                        <Text className="text-text-secondary font-black text-sm uppercase tracking-widest">No Match this time</Text>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                )}
+
+                {/* Live Driver Tracking Map (Only when active delivery) */}
+                {progress === 3 && (
+                    <View className="bg-ui-surface rounded-3xl p-2 border border-brand-primary h-64 mb-8 overflow-hidden shadow-sm shadow-brand-primary/20">
+                        <View className="absolute top-4 left-4 z-10 bg-brand-primary/90 px-3 py-1.5 rounded-full flex-row items-center border border-white/20">
+                            <Navigation size={12} color="#FFF" />
+                            <Text className="text-white font-black text-[10px] ml-1 uppercase">Live GPS Tracking</Text>
+                        </View>
+                        <Map
+                            style={{ flex: 1, borderRadius: 24 }}
+                            initialRegion={{
+                                latitude: (destination.latitude + initialDriver.latitude) / 2, // Center between start and end
+                                longitude: (destination.longitude + initialDriver.longitude) / 2,
+                                latitudeDelta: 0.015,
+                                longitudeDelta: 0.015,
+                            }}
+                            userInterfaceStyle="dark"
+                        >
+                            {/* Destination Marker */}
+                            <Marker
+                                coordinate={destination}
+                                title="Delivery Gate"
+                            />
+                            {/* Moving Driver Marker */}
+                            <Marker
+                                coordinate={driverLoc}
+                                title="Arjun (Rider)"
+                            >
+                                <View className="bg-brand-primary p-2 rounded-full border-2 border-white shadow-lg">
+                                    <Truck size={14} color="#FFF" />
+                                </View>
+                            </Marker>
+                        </Map>
+                    </View>
+                )}
+
                 {/* Rider Info */}
                 {progress >= 3 && (
                     <View className="bg-ui-surface rounded-3xl p-4 border border-gray-200 shadow-sm flex-row items-center justify-between">
@@ -153,6 +327,40 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
                         <TouchableOpacity className="w-10 h-10 bg-brand-primary/10 rounded-full items-center justify-center border border-brand-primary/30">
                             <PhoneCall size={18} color="#5A189A" />
                         </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* Oops I forgot window */}
+                {canCancel && secondsRemaining > 0 && (
+                    <View className="mt-8 bg-[#FFF9E6] border border-[#FFD966] rounded-3xl p-5">
+                        <View className="flex-row items-center justify-between mb-3">
+                            <Text className="text-[#B45309] font-black text-lg">Oops, forgot something?</Text>
+                            <Text className="text-[#B45309] font-bold text-xs">{secondsRemaining}s left to add</Text>
+                        </View>
+                        <Text className="text-[#D97706] text-[11px] font-bold mb-4">Add these impulse items instantly with no extra delivery fee!</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="overflow-visible">
+                            {[
+                                { id: 101, name: 'Tic Tac Mints', price: 20 },
+                                { id: 102, name: 'AA Batteries (4)', price: 150 },
+                                { id: 103, name: 'Paracetamol', price: 45 },
+                                { id: 104, name: 'Dairy Milk', price: 30 }
+                            ].map(item => (
+                                <View key={item.id} className="bg-white border border-[#FDE68A] rounded-2xl p-3 mr-3 w-32 shadow-sm">
+                                    <Text className="text-text-primary font-bold text-sm h-10" numberOfLines={2}>{item.name}</Text>
+                                    <View className="flex-row items-center justify-between mt-2">
+                                        <Text className="text-brand-primary font-black text-sm">₹{item.price}</Text>
+                                        <TouchableOpacity 
+                                            onPress={() => {
+                                                showNotification(`Added ${item.name} to order!`, "success");
+                                            }}
+                                            className="w-8 h-8 bg-brand-primary/10 rounded-full items-center justify-center border border-brand-primary/20"
+                                        >
+                                            <Plus size={16} color="#5A189A" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ))}
+                        </ScrollView>
                     </View>
                 )}
 

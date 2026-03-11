@@ -13,11 +13,15 @@ interface ProductCardProps {
     image: string;
     weight?: string;
     isInStock?: boolean;
+    isExpiringSoon?: boolean;
+    discountedPrice?: number;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, priceLoop, image, weight, isInStock = true }: ProductCardProps) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, priceLoop, image, weight, isInStock = true, isExpiringSoon = false, discountedPrice }: ProductCardProps) => {
     const navigation = useNavigation<any>();
     const [isLoop, setIsLoop] = useState(true);
+    const [hasVoted, setHasVoted] = useState(false);
+    const [votes, setVotes] = useState(42 + (id % 10)); // Mock varied initial votes
     const { addToCart, favorites, toggleFavorite } = useCart();
     const { showNotification } = useNotification();
     const isFavorited = favorites.includes(id);
@@ -34,8 +38,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
         if (isLoop) {
             navigation.navigate("CreateTeam", { productId: id, productName: name, loopPrice: priceLoop });
         } else {
-            addToCart({ id, name, price: priceSolo, qty: 1, type: "Solo" });
-            showNotification(`Added ${name} for ₹${priceSolo}`, "success");
+            const finalPrice = isExpiringSoon && discountedPrice ? discountedPrice : priceSolo;
+            addToCart({ id, name, price: finalPrice, qty: 1, type: "Solo" });
+            showNotification(`Added ${name} for ₹${finalPrice}`, "success");
         }
     };
 
@@ -51,9 +56,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
     };
 
     return (
-        <View className={`bg-ui-surface border ${isInStock ? 'border-gray-200' : 'border-gray-100'} rounded-3xl p-4 w-[48%] mb-4 shadow-sm`}>
+        <View style={{ backdropFilter: 'blur(16px)' } as any} className={`bg-white/80 border ${isInStock ? 'border-white/60' : 'border-white/20'} rounded-3xl p-4 w-[48%] mb-4 shadow-xl shadow-brand-primary/10 transition-transform duration-300 hover:-translate-y-1 z-10 overflow-visible`}>
+            {/* 3D Glass Highlight */}
+            <View className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-white/40 to-transparent rounded-t-3xl pointer-events-none" />
+            
             {/* Product Image */}
-            <View className={`items-center justify-center h-32 mb-3 bg-ui-background rounded-2xl overflow-hidden ${!isInStock ? 'opacity-40' : ''}`}>
+            <View className={`items-center justify-center h-32 mb-3 bg-ui-background/50 rounded-2xl overflow-hidden border border-white/50 shadow-inner ${!isInStock ? 'opacity-40' : ''}`}>
+                {isExpiringSoon && (
+                    <View className="absolute top-0 left-0 right-0 bg-red-500 py-1 items-center justify-center z-10 w-full">
+                        <Text className="text-white text-[9px] font-black uppercase tracking-widest">🚨 SECONDS RACK - {Math.floor((id % 50) + 10)}M LEFT</Text>
+                    </View>
+                )}
                 <Image
                     source={{ uri: image }}
                     className="w-full h-full"
@@ -89,13 +102,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
             )}
 
             {/* Pricing Toggle */}
-            <View className="flex-row items-center justify-between mt-4 bg-ui-background p-1 rounded-xl border border-gray-200">
+            <View className="flex-row items-center justify-between mt-4 bg-ui-background/40 p-1 rounded-xl border border-white/60 shadow-inner">
                 <TouchableOpacity
                     onPress={() => setIsLoop(false)}
                     className={`flex-1 items-center py-1.5 rounded-lg ${!isLoop ? 'bg-ui-surface border border-gray-300' : ''}`}
                 >
                     <Text className={`text-[10px] font-bold ${!isLoop ? 'text-text-primary' : 'text-gray-400'}`}>SOLO</Text>
-                    <Text className={`text-xs font-black ${!isLoop ? 'text-text-primary' : 'text-gray-400'}`}>₹{priceSolo}</Text>
+                    {isExpiringSoon && discountedPrice ? (
+                        <View className="items-center flex-row">
+                            <Text className="text-[10px] text-text-secondary line-through mr-1">₹{priceSolo}</Text>
+                            <Text className={`text-xs font-black text-red-500 animate-pulse`}>₹{discountedPrice}</Text>
+                        </View>
+                    ) : (
+                        <Text className={`text-xs font-black ${!isLoop ? 'text-text-primary' : 'text-gray-400'}`}>₹{priceSolo}</Text>
+                    )}
                 </TouchableOpacity>
                 <TouchableOpacity
                     onPress={() => setIsLoop(true)}
@@ -118,9 +138,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
                     </Text>
                 </TouchableOpacity>
             ) : (
-                <View className="mt-3 bg-gray-100 border border-gray-300 py-3 rounded-2xl flex-row items-center justify-center">
-                    <Text className="text-gray-400 font-bold ml-2">Stocking Now</Text>
-                </View>
+                <TouchableOpacity 
+                    onPress={() => {
+                        if (!hasVoted) {
+                            setHasVoted(true);
+                            setVotes(v => v + 1);
+                            showNotification(`Voted to restock ${name}!`, "success");
+                        }
+                    }}
+                    className={`mt-3 py-3 rounded-2xl flex-row items-center justify-center shadow-sm ${hasVoted ? 'bg-orange-100 border border-orange-300' : 'bg-[#FFF9E6] border border-[#FFD966]'}`}
+                >
+                    <Text className={`font-black text-xs ${hasVoted ? 'text-orange-600' : 'text-[#D97706]'}`}>
+                        {hasVoted ? `🔥 VOTED! (${votes})` : `🔥 VOTE TO RESTOCK (${votes})`}
+                    </Text>
+                </TouchableOpacity>
             )}
         </View>
     );
