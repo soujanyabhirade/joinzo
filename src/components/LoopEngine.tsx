@@ -23,39 +23,39 @@ export const LoopEngine = ({ itemName, currentMembers, neededMembers, discount }
     };
 
     return (
-        <View className="bg-soft-gray border border-gray-800 rounded-3xl p-6 mt-6 shadow-2xl">
+        <View className="bg-ui-surface border border-brand-primary/20 rounded-3xl p-6 mt-6 shadow-md">
             <View className="flex-row items-center justify-between mb-4">
                 <View className="flex-row items-center">
-                    <View className="w-10 h-10 rounded-full bg-neon-green/20 items-center justify-center border border-neon-green/50">
-                        <Users size={20} color="#39FF14" />
+                    <View className="w-10 h-10 rounded-full bg-brand-primary/10 items-center justify-center border border-brand-primary/30">
+                        <Users size={20} color="#5A189A" />
                     </View>
                     <View className="ml-3">
-                        <Text className="text-white font-black text-lg uppercase tracking-tight">{itemName} LOOP</Text>
-                        <Text className="text-gray-500 text-xs font-bold">STATUS: UNLOCKING {discount} OFF</Text>
+                        <Text className="text-text-primary font-black text-lg uppercase tracking-tight">{itemName} LOOP</Text>
+                        <Text className="text-text-secondary text-xs font-bold">STATUS: UNLOCKING {discount} OFF</Text>
                     </View>
                 </View>
-                <View className="bg-neon-green px-3 py-1 rounded-full">
-                    <Text className="text-deep-charcoal text-[10px] font-black uppercase">{currentMembers}/{neededMembers} JOINED</Text>
+                <View className="bg-brand-primary px-3 py-1 rounded-full">
+                    <Text className="text-white text-[10px] font-black uppercase">{currentMembers}/{neededMembers} JOINED</Text>
                 </View>
             </View>
 
             {/* Progress Bar */}
-            <View className="h-4 bg-deep-charcoal rounded-full overflow-hidden border border-gray-800 mb-2">
+            <View className="h-4 bg-gray-200 rounded-full overflow-hidden border border-gray-300 mb-2 shadow-inner">
                 <View
-                    className="h-full bg-neon-green rounded-full"
+                    className="h-full bg-brand-secondary rounded-full"
                     style={{ width: `${progress}%` }}
                 />
             </View>
             <View className="flex-row justify-between items-center px-1">
-                <Text className="text-gray-500 text-[10px] font-bold">START</Text>
-                <Text className="text-neon-green text-[10px] font-black">{neededMembers - currentMembers} MORE TO UNLOCK</Text>
-                <Text className="text-gray-500 text-[10px] font-bold">GOAL</Text>
+                <Text className="text-text-secondary text-[10px] font-bold">START</Text>
+                <Text className="text-brand-secondary text-[10px] font-black">{neededMembers - currentMembers} MORE TO UNLOCK</Text>
+                <Text className="text-text-secondary text-[10px] font-bold">GOAL</Text>
             </View>
 
             {/* WhatsApp Sync Button */}
             <TouchableOpacity
                 onPress={onShare}
-                className="mt-6 bg-[#25D366] py-4 rounded-2xl flex-row items-center justify-center shadow-lg"
+                className="mt-6 bg-[#25D366] py-4 rounded-xl flex-row items-center justify-center shadow-sm"
             >
                 <MessageCircle size={20} color="white" fill="white" />
                 <Text className="text-white font-black ml-2 uppercase tracking-tight">Invite via WhatsApp</Text>
@@ -63,10 +63,10 @@ export const LoopEngine = ({ itemName, currentMembers, neededMembers, discount }
 
             <TouchableOpacity
                 onPress={onShare}
-                className="mt-3 bg-soft-gray border border-gray-700 py-3 rounded-2xl flex-row items-center justify-center"
+                className="mt-3 bg-ui-background border border-gray-200 py-3 rounded-xl flex-row items-center justify-center shadow-sm"
             >
-                <Share2 size={18} color="#9CA3AF" />
-                <Text className="text-gray-400 font-bold ml-2">Copy Link</Text>
+                <Share2 size={18} color="#6B7280" />
+                <Text className="text-text-secondary font-bold ml-2">Copy Link</Text>
             </TouchableOpacity>
         </View>
     );

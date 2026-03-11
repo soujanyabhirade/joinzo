@@ -7,6 +7,9 @@ import { StatusBar } from 'react-native';
 
 // Providers
 import { AuthProvider, useAuth } from './src/lib/AuthContext';
+import { CartProvider } from './src/lib/CartContext';
+import { LocationProvider } from './src/lib/LocationContext';
+import { NotificationProvider } from './src/lib/NotificationContext';
 
 // Screens
 import { AuthScreen } from './src/screens/AuthScreen';
@@ -49,10 +52,16 @@ const RootNavigator = () => {
 export default function App() {
     return (
         <AuthProvider>
-            <StatusBar barStyle="light-content" />
-            <NavigationContainer>
-                <RootNavigator />
-            </NavigationContainer>
+            <LocationProvider>
+                <CartProvider>
+                    <NotificationProvider>
+                        <StatusBar barStyle="light-content" />
+                        <NavigationContainer>
+                            <RootNavigator />
+                        </NavigationContainer>
+                    </NotificationProvider>
+                </CartProvider>
+            </LocationProvider>
         </AuthProvider>
     );
 }

@@ -6,9 +6,15 @@ type AuthContextType = {
     session: Session | null;
     user: User | null;
     isLoading: boolean;
+    signInAsGuest: () => void;
 };
 
-const AuthContext = createContext<AuthContextType>({ session: null, user: null, isLoading: true });
+const AuthContext = createContext<AuthContextType>({
+    session: null,
+    user: null,
+    isLoading: true,
+    signInAsGuest: () => { }
+});
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [session, setSession] = useState<Session | null>(null);
@@ -33,8 +39,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
     }, []);
 
+    const signInAsGuest = () => {
+        const mockUser: User = {
+            id: '00000000-0000-0000-0000-000000000000',
+            email: 'demo@joinzo.com',
+            app_metadata: {},
+            user_metadata: {},
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+        };
+        const mockSession: Session = {
+            access_token: 'mock-token',
+            refresh_token: 'mock-refresh',
+            expires_in: 3600,
+            token_type: 'bearer',
+            user: mockUser,
+        };
+        setSession(mockSession);
+        setUser(mockUser);
+    };
+
     return (
-        <AuthContext.Provider value={{ session, user, isLoading }}>
+        <AuthContext.Provider value={{ session, user, isLoading, signInAsGuest }}>
             {children}
         </AuthContext.Provider>
     );
