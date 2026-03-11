@@ -10,10 +10,10 @@ export const LoopTicker = () => {
     ];
 
     return (
-        <View className="mt-6">
+        <View className="mt-4 mb-2">
             <View className="px-4 flex-row items-center justify-between mb-3">
-                <Text className="text-white font-bold text-lg">Live Neighborhood Loops</Text>
-                <Text className="text-neon-green text-xs font-bold">VIEW ALL</Text>
+                <Text className="text-text-primary font-black text-lg tracking-tight">Live Neighborhood Loops</Text>
+                <Text className="text-brand-primary text-xs font-bold">VIEW ALL</Text>
             </View>
             <ScrollView
                 horizontal
@@ -23,17 +23,17 @@ export const LoopTicker = () => {
                 {loops.map((loop) => (
                     <View
                         key={loop.id}
-                        className="mr-3 bg-neon-green/10 border border-neon-green/30 px-4 py-3 rounded-2xl flex-row items-center"
+                        className="mr-3 bg-brand-primary/5 border border-brand-primary/20 px-4 py-3 rounded-2xl flex-row items-center shadow-sm"
                     >
-                        <View className="w-8 h-8 rounded-full bg-neon-green items-center justify-center mr-3">
-                            <Users size={16} color="#121212" />
+                        <View className="w-8 h-8 rounded-full bg-brand-primary/10 items-center justify-center mr-3">
+                            <Users size={16} color="#5A189A" />
                         </View>
                         <View>
-                            <Text className="text-white text-sm font-bold">
+                            <Text className="text-text-primary text-sm font-bold">
                                 {loop.user} at {loop.location}
                             </Text>
-                            <Text className="text-neon-green text-xs font-medium">
-                                Just started a <Text className="font-bold underline">{loop.item} Loop</Text>! Join?
+                            <Text className="text-text-secondary text-xs font-medium mt-0.5">
+                                Just started a <Text className="font-bold underline text-brand-primary">{loop.item} Loop</Text>!
                             </Text>
                         </View>
                     </View>

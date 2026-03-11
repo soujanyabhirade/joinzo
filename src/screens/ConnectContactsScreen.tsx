@@ -40,35 +40,37 @@ export const ConnectContactsScreen = ({ route, navigation }: any) => {
         );
 
         const newSet = new Set(invitedIds);
-        if (contact.id) newSet.add(contact.id);
+        const contactId = (contact as any).id;
+        if (contactId) newSet.add(contactId);
         setInvitedIds(newSet);
     };
 
     const renderContact = ({ item }: { item: Contacts.Contact }) => {
-        const isInvited = item.id && invitedIds.has(item.id);
+        const itemId = (item as any).id;
+        const isInvited = itemId && invitedIds.has(itemId);
 
         return (
-            <View className="flex-row items-center justify-between bg-soft-gray p-4 mb-3 rounded-2xl border border-gray-800">
+            <View className="flex-row items-center justify-between bg-ui-surface p-4 mb-3 rounded-2xl border border-gray-200 shadow-sm">
                 <View>
-                    <Text className="text-white font-bold text-lg">{item.firstName} {item.lastName || ''}</Text>
-                    <Text className="text-gray-500 text-xs mt-1">
+                    <Text className="text-text-primary font-bold text-lg">{item.firstName} {item.lastName || ''}</Text>
+                    <Text className="text-text-secondary text-xs mt-1">
                         {item.phoneNumbers?.[0]?.number || 'No number'}
                     </Text>
                 </View>
                 <TouchableOpacity
                     onPress={() => !isInvited && handleInvite(item)}
                     disabled={isInvited}
-                    className={`px-4 py-2 rounded-xl flex-row items-center ${isInvited ? 'bg-neon-green/20' : 'bg-neon-green'}`}
+                    className={`px-4 py-2 rounded-xl flex-row items-center ${isInvited ? 'bg-gray-100 border border-gray-200' : 'bg-brand-primary/10 border border-brand-primary/30'}`}
                 >
                     {isInvited ? (
                         <>
-                            <Check size={16} color="#39FF14" />
-                            <Text className="text-neon-green font-bold ml-1">Invited</Text>
+                            <Check size={16} color="#6B7280" />
+                            <Text className="text-text-secondary font-bold ml-1">Invited</Text>
                         </>
                     ) : (
                         <>
-                            <UserPlus size={16} color="#121212" />
-                            <Text className="text-deep-charcoal font-black ml-1">Add</Text>
+                            <UserPlus size={16} color="#5A189A" />
+                            <Text className="text-brand-primary font-black ml-1">Add</Text>
                         </>
                     )}
                 </TouchableOpacity>
@@ -77,26 +79,26 @@ export const ConnectContactsScreen = ({ route, navigation }: any) => {
     };
 
     return (
-        <View className="flex-1 bg-deep-charcoal">
+        <View className="flex-1 bg-ui-background">
             {/* Header */}
-            <View className="px-6 py-6 pt-12 bg-deep-charcoal border-b border-gray-800 flex-row justify-between items-center">
+            <View className="px-6 py-6 pt-12 bg-ui-background border-b border-gray-100 flex-row justify-between items-center z-10 shadow-sm">
                 <View>
-                    <Text className="text-neon-green font-black text-xs uppercase tracking-widest mb-1">Step 2: Spread the word</Text>
-                    <Text className="text-white font-black text-2xl">Invite Neighbors</Text>
+                    <Text className="text-text-secondary font-black text-xs uppercase tracking-widest mb-1">Spread the word</Text>
+                    <Text className="text-text-primary font-black text-2xl">Invite Neighbors</Text>
                 </View>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")} className="bg-soft-gray p-3 rounded-full border border-gray-700">
-                    <Home size={20} color="#39FF14" />
+                <TouchableOpacity onPress={() => navigation.navigate("Home")} className="bg-ui-surface p-3 rounded-full border border-gray-200 shadow-sm">
+                    <Home size={20} color="#5A189A" />
                 </TouchableOpacity>
             </View>
 
             {loading ? (
                 <View className="flex-1 items-center justify-center">
-                    <Text className="text-neon-green font-bold">Syncing contacts...</Text>
+                    <Text className="text-brand-primary font-bold">Syncing contacts...</Text>
                 </View>
             ) : (
                 <FlatList
                     data={contacts}
-                    keyExtractor={(c) => c.id || Math.random().toString()}
+                    keyExtractor={(c) => (c as any).id || Math.random().toString()}
                     renderItem={renderContact}
                     className="p-4"
                     ListEmptyComponent={
