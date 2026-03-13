@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert, Platform, Share, Linking } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import { Check, UserPlus, Home } from 'lucide-react-native';
+import { useNotification } from '../lib/NotificationContext';
 
 export const ConnectContactsScreen = ({ route, navigation }: any) => {
     const [contacts, setContacts] = useState<Contacts.Contact[]>([]);
     const [loading, setLoading] = useState(true);
     const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
+    const { showNotification } = useNotification();
 
     // Optionally grab the newly created team details passed via navigation params
     const { teamName } = route.params || { teamName: "Skyline Snacks" };
@@ -45,19 +47,27 @@ export const ConnectContactsScreen = ({ route, navigation }: any) => {
         })();
     }, []);
 
-    const handleInvite = (contact: Contacts.Contact) => {
-        // In a real app, this would trigger an SMS Deep link like `sms:${phone}?body=${msg}`
-        // Or integrate with WhatsApp APIs. Here we simulate success.
+    const handleInvite = async (contact: Contacts.Contact) => {
+        const teamLink = `https://joinzo.app/loop/${Math.random().toString(36).substring(7)}`;
+        const message = `Hey ${contact.firstName}! I'm starting a shopping loop for "${teamName}" on Joinzo. Join me to unlock collective discounts and save on delivery! \n\nAccept here: ${teamLink}`;
 
-        Alert.alert(
-            "Invite Sent!",
-            `Sent a WhatsApp invite to ${contact.firstName} to join the ${teamName} loop.`
-        );
+        try {
+            const result = await Share.share({
+                message: message,
+                url: teamLink, // iOS support
+                title: `Join my ${teamName} Loop!`
+            });
 
-        const newSet = new Set(invitedIds);
-        const contactId = (contact as any).id;
-        if (contactId) newSet.add(contactId);
-        setInvitedIds(newSet);
+            if (result.action === Share.sharedAction) {
+                const newSet = new Set(invitedIds);
+                const contactId = (contact as any).id;
+                if (contactId) newSet.add(contactId);
+                setInvitedIds(newSet);
+                showNotification(`Invite Shared with ${contact.firstName}!`, "success");
+            }
+        } catch (error: any) {
+            Alert.alert("Error Sharing", error.message);
+        }
     };
 
     const renderContact = ({ item }: { item: Contacts.Contact }) => {

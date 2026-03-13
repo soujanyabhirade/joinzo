@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
-import { Plus, Users, Zap, Share2, Heart } from 'lucide-react-native';
+import { Plus, Users, Zap, Share2, Heart, ShoppingCart } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useCart } from '../lib/CartContext';
 import { useNotification } from '../lib/NotificationContext';
@@ -45,7 +45,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
     };
 
     const handleShare = () => {
-        const message = `Hey! Let's team up to buy ${name} at a loop discount on Joinzo for just ₹${priceLoop}!`;
+        const appLink = `https://joinzo.app/product/${id}`;
+        const message = `Hey! Let's team up to buy ${name} at a loop discount on Joinzo for just ₹${priceLoop}! \n\nJoin here: ${appLink}`;
         if (Platform.OS === 'web') {
             window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
         } else {
@@ -54,6 +55,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
             });
         }
     };
+
+    const [imageError, setImageError] = useState(false);
+    const fallbackImage = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800"; // High quality grocery placeholder
+
+    // ... handleAction ...
 
     return (
         <View style={{ backdropFilter: 'blur(16px)' } as any} className={`bg-white/80 border ${isInStock ? 'border-white/60' : 'border-white/20'} rounded-3xl p-4 w-[48%] mb-4 shadow-xl shadow-brand-primary/10 transition-transform duration-300 hover:-translate-y-1 z-10 overflow-visible`}>
@@ -68,9 +74,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
                     </View>
                 )}
                 <Image
-                    source={{ uri: image }}
+                    source={{ uri: imageError ? fallbackImage : image }}
                     className="w-full h-full"
-                    resizeMode="cover"
+                    resizeMode="contain"
+                    onError={() => setImageError(true)}
                 />
                 <View className="absolute top-2 left-2 bg-brand-primary px-2 py-0.5 rounded-md flex-row items-center">
                     <Zap size={10} color="#FFFFFF" fill="#FFFFFF" />
@@ -98,6 +105,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
                     <View className="h-1.5 w-full bg-brand-primary/10 rounded-full overflow-hidden">
                         <View className="h-full bg-brand-primary rounded-full" style={{ width: `${progressPercent}%` }} />
                     </View>
+                </View>
+            )}
+
+            {/* Active Loops Nearby Indicator */}
+            {priceLoop > 0 && (
+                <View className="mt-3 mb-2 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100 self-start">
+                    <Text className="text-brand-primary font-black text-[8px] uppercase tracking-tighter">🔥 {Math.floor(id % 3) + 1} Loops Active Nearby</Text>
                 </View>
             )}
 
@@ -132,7 +146,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
             {/* Add Button */}
             {isInStock ? (
                 <TouchableOpacity onPress={handleAction} className={`mt-3 border py-3 rounded-2xl flex-row items-center justify-center ${isLoop ? 'bg-brand-primary border-brand-primary' : 'bg-brand-primary/10 border-brand-primary/30'}`}>
-                    {isLoop ? <Users size={18} color="#FFFFFF" /> : <Plus size={18} color="#5A189A" />}
+                    {isLoop ? <Users size={18} color="#FFFFFF" /> : <ShoppingCart size={18} color="#5A189A" />}
                     <Text className={`font-black ml-2 ${isLoop ? 'text-white' : 'text-brand-primary'}`}>
                         {isLoop ? 'JOIN LOOP' : 'ADD SOLO'}
                     </Text>

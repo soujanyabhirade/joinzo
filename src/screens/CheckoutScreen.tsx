@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, ActivityIndicator } from 'react-native';
-import { ShoppingBag, MapPin, ChevronRight, Info, Clock, CheckCircle, Truck, Zap, ShieldCheck, CreditCard, Smartphone, Wallet, Users, Recycle, Gift } from 'lucide-react-native';
+import { ShoppingBag, MapPin, ChevronRight, Info, Clock, CheckCircle, Truck, Zap, ShieldCheck, CreditCard, Smartphone, Wallet, Users, Recycle, Gift, ChevronLeft } from 'lucide-react-native';
 import Map, { Marker } from '../components/Map';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { useCart } from '../lib/CartContext';
@@ -111,7 +111,10 @@ export const CheckoutScreen = ({ navigation }: any) => {
         <View className="flex-1 bg-ui-background p-4">
             <ScrollView showsVerticalScrollIndicator={false}>
                 <View className="flex-row justify-between items-center mt-4 mb-6">
-                    <Text className="text-text-primary font-black text-3xl">GATE-DROP</Text>
+                    <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
+                        <ChevronLeft size={28} color="#5A189A" />
+                    </TouchableOpacity>
+                    <Text className="text-text-primary font-black text-3xl flex-1">GATE-DROP</Text>
                     <CountdownTimer minutes={10} />
                 </View>
 

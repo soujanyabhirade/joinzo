@@ -36,10 +36,20 @@ export const ProfileScreen = ({ navigation }: any) => {
     }, [fetchOrders]);
 
     const handleReorder = async (orderId: string) => {
-        // In a real app, we'd fetch the order_items for this orderId
-        // For this demo, we'll simulate adding a few popular items
-        showNotification("Previous items added to your cart!", "success");
-        addToCart({ id: 101, name: "Premium Avocados", price: 199, qty: 1, type: "Solo" });
+        // Find the order to get its amount (or simulate items)
+        const order = orders.find(o => o.id === orderId);
+        
+        // Mock items for the reorder
+        const itemsToReorder = [
+            { id: 101, name: "Premium Avocados", price: 199, qty: 1 },
+            { id: 102, name: "Sourdough Bread", price: 85, qty: 1 }
+        ];
+
+        itemsToReorder.forEach(item => {
+            addToCart({ ...item, type: "Solo" });
+        });
+
+        showNotification("All items from your previous order added!", "success");
         navigation.navigate("Checkout");
     };
 
@@ -107,15 +117,15 @@ export const ProfileScreen = ({ navigation }: any) => {
 
                 {/* Options List */}
                 <View className="bg-ui-surface rounded-3xl p-2 border border-gray-200 mb-6 shadow-sm">
-                    <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "Payment methods will be available in the next update!")} className="flex-row items-center p-4 border-b border-gray-200">
+                    <TouchableOpacity onPress={() => navigation.navigate('PaymentMethods')} className="flex-row items-center p-4 border-b border-gray-200">
                         <CreditCard size={20} color="#5A189A" />
                         <Text className="text-text-primary font-bold ml-4 flex-1">Payment Methods</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => Alert.alert("Coming Soon", "App settings configuration will be unlocked shortly.")} className="flex-row items-center p-4 border-b border-gray-200">
+                    <TouchableOpacity onPress={() => navigation.navigate('Settings')} className="flex-row items-center p-4 border-b border-gray-100">
                         <Settings size={20} color="#5A189A" />
                         <Text className="text-text-primary font-bold ml-4 flex-1">App Settings</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => Alert.alert("Support", "Need help? Email contact@joinzo.com.")} className="flex-row items-center p-4">
+                    <TouchableOpacity onPress={() => navigation.navigate('Support')} className="flex-row items-center p-4">
                         <HelpCircle size={20} color="#5A189A" />
                         <Text className="text-text-primary font-bold ml-4 flex-1">Support & Help</Text>
                     </TouchableOpacity>

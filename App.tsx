@@ -21,6 +21,12 @@ import { TrackOrderScreen } from './src/screens/TrackOrderScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { DiscoverScreen } from './src/screens/DiscoverScreen';
 import { HeatmapScreen } from './src/screens/HeatmapScreen';
+import { LoomvidsScreen } from './src/screens/LoomvidsScreen';
+import { NeighborhoodPulseScreen } from './src/screens/NeighborhoodPulseScreen';
+import { SupportScreen } from './src/screens/SupportScreen';
+import { SettingsScreen } from './src/screens/SettingsScreen';
+import { PaymentMethodsScreen } from './src/screens/PaymentMethodsScreen';
+
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +50,12 @@ const RootNavigator = () => {
                     <Stack.Screen name="Profile" component={ProfileScreen} />
                     <Stack.Screen name="Discover" component={DiscoverScreen} />
                     <Stack.Screen name="Heatmap" component={HeatmapScreen} />
+                    <Stack.Screen name="Loomvids" component={LoomvidsScreen} />
+                    <Stack.Screen name="NeighborhoodPulse" component={NeighborhoodPulseScreen} />
+                    <Stack.Screen name="Support" component={SupportScreen} />
+                    <Stack.Screen name="Settings" component={SettingsScreen} />
+                    <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+
                 </>
             ) : (
                 // No session, require login
