@@ -3,7 +3,7 @@ import "../../global.css";
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StatusBar, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
-import { MapPin, Zap, ShoppingCart, User, Search, Gift, PackageOpen, Sparkles, Compass, Flame, Sun, Moon } from 'lucide-react-native';
+import { MapPin, Zap, ShoppingCart, User, Search, Gift, PackageOpen, Sparkles, Compass, Flame, Sun, Moon, MessageSquare } from 'lucide-react-native';
 import { TextInput } from 'react-native';
 
 // Components
@@ -18,6 +18,10 @@ import { SocialTicker } from '../components/SocialTicker';
 import { RecipeSection } from '../components/RecipeSection';
 import { PriceDropRoulette } from '../components/PriceDropRoulette';
 import { RoutineSection } from '../components/RoutineSection';
+import { CarbonTicker } from '../components/CarbonTicker';
+import { FlashMobDiscount } from '../components/FlashMobDiscount';
+import { AIRoutineBuilder } from '../components/AIRoutineBuilder';
+
 
 // Hooks
 import { useHapticArrival } from '../hooks/useHapticArrival';
@@ -27,6 +31,15 @@ import { supabase } from '../lib/supabase';
 import { useCart } from '../lib/CartContext';
 import { useLocation } from '../lib/LocationContext';
 import { useNotification } from '../lib/NotificationContext';
+
+const MOCK_PRODUCTS = [
+    { id: 'm1', name: "Alphonso Mangoes (1kg)", price: 499, priceLoop: 399, image: "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&q=80&w=800", category: "Fresh", isLoopAvailable: true, is_in_stock: true },
+    { id: 'm2', name: "Greek Yogurt (500g)", price: 120, priceLoop: 85, image: "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=800", category: "Dairy", isLoopAvailable: true, is_in_stock: true },
+    { id: 'm3', name: "Oreo Family Pack", price: 150, priceLoop: 110, image: "https://images.unsplash.com/photo-1623934199716-bc3449511873?auto=format&fit=crop&q=80&w=800", category: "Snacks", isLoopAvailable: true, is_in_stock: true },
+    { id: 'm4', name: "Classic Coca-Cola (2L)", price: 95, priceLoop: 75, image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&q=80&w=800", category: "Drinks", isLoopAvailable: true, is_in_stock: true },
+    { id: 'm5', name: "Farm Fresh Spinach", price: 60, priceLoop: 45, image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&q=80&w=800", category: "Fresh", isLoopAvailable: true, is_in_stock: true },
+    { id: 'm6', name: "Digestive Biscuits", price: 40, priceLoop: 32, image: "https://images.unsplash.com/photo-1610450949065-1f280fa7c96c?auto=format&fit=crop&q=80&w=800", category: "Snacks", isLoopAvailable: true, is_in_stock: true }
+];
 
 export default function HomeScreen({ navigation }: any) {
   const [showAI, setShowAI] = useState(false);
@@ -55,6 +68,7 @@ export default function HomeScreen({ navigation }: any) {
       greetingText: isNight ? 'text-indigo-600' : 'text-orange-600',
       greetingMessage: isNight ? 'Late Night Cravings?' : 'Good Morning!',
       greetingIcon: isNight ? Moon : Sun,
+      headerIcon: isNight ? "#1F2937" : "#5A189A", // Dark for both to ensure contrast on white
   };
 
   const categories = useMemo(() => ["All", "Fresh", "Snacks", "Drinks", "Electronics", "Groceries", "Essentials"], []);
@@ -80,8 +94,14 @@ export default function HomeScreen({ navigation }: any) {
         setProducts(data);
         setFilteredProducts(data);
       } else {
-        setProducts([]);
-        setFilteredProducts([]);
+        // Fallback to MOCK_PRODUCTS if DB is empty
+        const fallback = MOCK_PRODUCTS.filter(p => {
+            const matchesCategory = category === "All" || p.category === category;
+            const matchesQuery = query.trim() === "" || p.name.toLowerCase().includes(query.toLowerCase());
+            return matchesCategory && matchesQuery;
+        });
+        setProducts(fallback);
+        setFilteredProducts(fallback);
       }
     } catch (err: any) {
       console.error("Error fetching products:", err);
@@ -122,7 +142,7 @@ export default function HomeScreen({ navigation }: any) {
           <View>
             <View className="flex-row items-center mb-1">
                 <View className={`px-2 py-0.5 rounded-md flex-row items-center border ${theme.greetingPill}`}>
-                    <theme.greetingIcon size={10} color={isNight ? "#A5B4FC" : "#EA580C"} />
+                    <theme.greetingIcon size={10} color={isNight ? "#4F46E5" : "#EA580C"} />
                     <Text className={`font-black text-[10px] ml-1 uppercase tracking-wider ${theme.greetingText}`}>{theme.greetingMessage}</Text>
                 </View>
             </View>
@@ -142,19 +162,26 @@ export default function HomeScreen({ navigation }: any) {
               onPress={() => navigation.navigate('Discover')}
               className={`w-10 h-10 rounded-full items-center justify-center border ${isNight ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-brand-primary/10 border-brand-primary/20'}`}
             >
-              <Compass size={20} color={isNight ? "#A5B4FC" : "#5A189A"} />
+              <Compass size={20} color={isNight ? "#4F46E5" : "#5A189A"} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('NeighborhoodPulse')}
+              className={`w-10 h-10 rounded-full items-center justify-center border ${isNight ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-brand-primary/10 border-brand-primary/20'}`}
+            >
+              <MessageSquare size={20} color={isNight ? "#4F46E5" : "#5A189A"} />
+              <View className="absolute -top-1 -right-1 bg-green-500 rounded-full w-3 h-3 border-2 border-white" />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate('Profile')}
               className={`w-10 h-10 rounded-full items-center justify-center border ${theme.surface} ${theme.border}`}
             >
-              <User size={20} color={isNight ? "#FFF" : "#5A189A"} />
+              <User size={20} color={theme.headerIcon} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigation.navigate('Checkout')}
               className={`w-10 h-10 rounded-full items-center justify-center border ${theme.surface} ${theme.border}`}
             >
-              <ShoppingCart size={20} color={isNight ? "#FFF" : "#5A189A"} />
+              <ShoppingCart size={20} color={theme.headerIcon} />
               {cartItems.length > 0 && (
                 <View className="absolute -top-1 -right-1 bg-brand-primary rounded-full w-4 h-4 items-center justify-center">
                   <Text className="text-[10px] font-black text-white">{cartItems.length}</Text>
@@ -184,6 +211,13 @@ export default function HomeScreen({ navigation }: any) {
 
               {/* LIVE ACTIVITY TICKER */}
               <LoopTicker />
+
+              {/* CARBON SAVER TICKER */}
+              <CarbonTicker />
+
+              {/* FLASH MOB DISCOUNT */}
+              <FlashMobDiscount />
+
 
               {/* Mystery Munchies Mock */}
               <TouchableOpacity 
@@ -253,8 +287,11 @@ export default function HomeScreen({ navigation }: any) {
               {/* RECIPE TO CART SECTION */}
               <RecipeSection />
 
-              {/* 1-TAP ROUTINES BUILDER */}
+              {/* 1-TAP ROUTINES BUILDER (Legacy) */}
               <RoutineSection />
+
+              {/* AI PERSONALIZED ROUTINE BUILDER */}
+              <AIRoutineBuilder />
 
               {/* ACTIVE LOOP ENGINE & HEATMAP LINK */}
               <View className="px-4">
@@ -361,6 +398,17 @@ export default function HomeScreen({ navigation }: any) {
             </View>
           </View>
         )}
+
+        {/* Floating Neighborhood Pulse Button */}
+        <TouchableOpacity 
+            onPress={() => navigation.navigate('NeighborhoodPulse')}
+            className="absolute bottom-28 right-6 bg-brand-primary w-14 h-14 rounded-full items-center justify-center shadow-2xl shadow-brand-primary/60 border-2 border-white/20"
+        >
+            <MessageSquare size={24} color="#FFF" />
+            <View className="absolute top-0 right-0 bg-green-500 w-4 h-4 rounded-full border-2 border-white items-center justify-center">
+                <Text className="text-[8px] font-black text-white">42</Text>
+            </View>
+        </TouchableOpacity>
 
         {/* Global Social Ticker Overlay */}
         <SocialTicker />

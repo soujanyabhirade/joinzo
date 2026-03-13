@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { Truck, MapPin, Package, CheckCircle2, ChevronLeft, PhoneCall, XCircle, Plus, Navigation, Gift, PartyPopper } from 'lucide-react-native';
+import { Truck, MapPin, Package, CheckCircle2, ChevronLeft, PhoneCall, XCircle, ShoppingCart, Navigation, Gift, PartyPopper, LifeBuoy } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import Map, { Marker } from '../components/Map';
 import { CountdownTimer } from '../components/CountdownTimer';
@@ -150,11 +150,20 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
     return (
         <View className="flex-1 bg-ui-background">
             {/* Header */}
-            <View className="px-4 py-6 pt-12 flex-row items-center border-b border-gray-100 bg-ui-background shadow-sm">
-                <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
-                    <ChevronLeft size={28} color="#5A189A" />
+            <View className="px-4 py-6 pt-12 flex-row items-center border-b border-gray-100 bg-ui-background shadow-sm justify-between">
+                <View className="flex-row items-center">
+                    <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
+                        <ChevronLeft size={28} color="#5A189A" />
+                    </TouchableOpacity>
+                    <Text className="text-text-primary font-black text-xl">TRACK ORDER</Text>
+                </View>
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('Support')}
+                    className="bg-brand-primary/10 px-3 py-1.5 rounded-full border border-brand-primary/20 flex-row items-center"
+                >
+                    <LifeBuoy size={12} color="#5A189A" />
+                    <Text className="text-brand-primary font-black text-[10px] ml-1 uppercase">Get Help</Text>
                 </TouchableOpacity>
-                <Text className="text-text-primary font-black text-xl">TRACK ORDER</Text>
             </View>
 
             <ScrollView className="flex-1 p-6">
@@ -355,7 +364,7 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
                                             }}
                                             className="w-8 h-8 bg-brand-primary/10 rounded-full items-center justify-center border border-brand-primary/20"
                                         >
-                                            <Plus size={16} color="#5A189A" />
+                                            <ShoppingCart size={16} color="#5A189A" />
                                         </TouchableOpacity>
                                     </View>
                                 </View>

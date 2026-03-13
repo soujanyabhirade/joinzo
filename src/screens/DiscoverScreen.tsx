@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
-import { X, Heart, Home } from 'lucide-react-native';
+import { X, Heart, Home, Play, ShoppingCart } from 'lucide-react-native';
 import { useCart } from '../lib/CartContext';
 import { useNotification } from '../lib/NotificationContext';
 
@@ -35,9 +35,17 @@ export const DiscoverScreen = ({ navigation }: any) => {
         <View className="flex-1 bg-[#1A1A1A]">
             <View className="px-6 py-6 pt-12 flex-row justify-between items-center z-10">
                 <Text className="text-white font-black text-2xl tracking-tight">DISCOVER</Text>
-                <TouchableOpacity onPress={() => navigation.navigate("Home")} className="bg-white/10 p-3 rounded-full border border-white/20">
-                    <Home size={20} color="#FFF" />
-                </TouchableOpacity>
+                <View className="flex-row items-center gap-3">
+                    <TouchableOpacity 
+                        onPress={() => navigation.navigate("Loomvids")} 
+                        className="bg-brand-primary p-3 rounded-full border border-brand-primary/20 shadow-lg shadow-brand-primary/20"
+                    >
+                        <Play size={20} color="#FFF" fill="#FFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate("Home")} className="bg-white/10 p-3 rounded-full border border-white/20">
+                        <Home size={20} color="#FFF" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <View className="flex-1 items-center justify-center p-6">
@@ -77,7 +85,12 @@ export const DiscoverScreen = ({ navigation }: any) => {
                         onPress={() => handleSwipe(true)}
                         className="w-20 h-20 bg-ui-surface rounded-full items-center justify-center border-2 border-green-500 shadow-xl shadow-green-500/30"
                     >
-                        <Heart size={40} color="#10B981" fill="#10B981" />
+                        <View className="relative">
+                            <Heart size={40} color="#10B981" fill="#10B981" />
+                            <View className="absolute -top-1 -right-1 bg-white rounded-full p-1 border border-green-500">
+                                <ShoppingCart size={12} color="#10B981" />
+                            </View>
+                        </View>
                     </TouchableOpacity>
                 </View>
             )}
