@@ -5,6 +5,7 @@ import { ChevronLeft, Gift, Copy, Share2, Coins, ArrowUpRight, ArrowDownLeft, Za
 import { useCoins } from '../lib/CoinsContext';
 import { useTheme } from '../lib/ThemeContext';
 import { useNotification } from '../lib/NotificationContext';
+import { CONFIG } from '../lib/config';
 
 const COIN_TO_RUPEE = 1; // 1 coin = ₹1
 
@@ -32,7 +33,7 @@ export const ReferralScreen = ({ navigation }: any) => {
     const textColor = isDarkMode ? '#FFFFFF' : '#1A1A2E';
     const subTextColor = isDarkMode ? '#9CA3AF' : '#6B7280';
 
-    const shareMessage = `🎉 Join me on Joinzo — India's Group Buying delivery app!\nUse my referral code *${referralCode}* and get ₹50 in Joinzo Coins FREE!\n\n📲 Download now: https://joinzo.app/ref/${referralCode}`;
+    const shareMessage = `🎉 Join me on Joinzo — India's Group Buying delivery app!\nUse my referral code *${referralCode}* and get ₹50 in Joinzo Coins FREE!\n\n📲 Download now: ${CONFIG.APP_BASE_URL}/ref/${referralCode}`;
 
     const handleShare = async () => {
         setSharing(true);
@@ -45,7 +46,10 @@ export const ReferralScreen = ({ navigation }: any) => {
                     showNotification("Referral message copied to clipboard!", "success");
                 }
             } else {
-                await Share.share({ message: shareMessage });
+                await Share.share({ 
+                    message: shareMessage,
+                    title: 'Join Joinzo & Earn Coins!'
+                });
             }
         } catch (err) {
             console.log(err);

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { Truck, MapPin, Package, CheckCircle2, ChevronLeft, PhoneCall, XCircle, ShoppingCart, Navigation, Gift, PartyPopper, LifeBuoy } from 'lucide-react-native';
+import { Truck, MapPin, Package, CheckCircle2, ChevronLeft, PhoneCall, XCircle, ShoppingCart, Navigation, Gift, PartyPopper, LifeBuoy, ShieldCheck } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import Map, { Marker } from '../components/Map';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { useNotification } from '../lib/NotificationContext';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, TextInput } from 'react-native';
 
 export const TrackOrderScreen = ({ route, navigation }: any) => {
     const { showNotification } = useNotification();
@@ -17,6 +17,8 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
     const [spinState, setSpinState] = useState<'idle' | 'spinning' | 'won' | 'lost'>('idle');
     const [unboxingClicks, setUnboxingClicks] = useState(0);
     const [isSimulating, setIsSimulating] = useState(false);
+    const [otp, setOtp] = useState(['', '', '', '']);
+    const [isOtpVerified, setIsOtpVerified] = useState(false);
 
     // Mock Driver Location
     const destination = { latitude: 12.9716, longitude: 77.5946 };
@@ -170,10 +172,11 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
         { id: 2, title: 'Confirmed', desc: 'Store confirmed & started packing', icon: CheckCircle2 },
         { id: 3, title: 'Item Packed', desc: 'Rider collecting from the hub', icon: CheckCircle2 },
         { id: 4, title: 'Out for Delivery', desc: 'Rider is on the way to your gate', icon: Truck },
-        { id: 5, title: 'Delivered! 🎉', desc: 'Order dropped at your gate', icon: MapPin },
+        { id: 5, title: 'Verifying Delivery', desc: 'Enter OTP to confirm receipt', icon: ShieldCheck },
+        { id: 6, title: 'Delivered! 🎉', desc: 'Order dropped at your gate', icon: MapPin },
     ];
 
-    const isDelivered = progress >= 5;
+    const isDelivered = progress >= 6;
 
     return (
         <View className="flex-1 bg-ui-background">
@@ -252,6 +255,45 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
                         })}
                     </View>
                 </View>
+
+                {/* OTP VERIFICATION SECTION */}
+                {progress === 5 && !isOtpVerified && (
+                    <View className="bg-white border-2 border-brand-primary p-6 rounded-[32px] mb-8 shadow-xl shadow-brand-primary/20">
+                        <View className="flex-row items-center mb-4">
+                            <ShieldCheck size={24} color="#5A189A" />
+                            <Text className="text-text-primary font-black text-xl ml-3 italic uppercase tracking-tighter">Confirm Delivery</Text>
+                        </View>
+                        <Text className="text-text-secondary font-bold text-sm mb-6">Enter the 4-digit code sent to your phone to securely receive your order.</Text>
+                        
+                        <View className="flex-row justify-between mb-8 px-4">
+                            {[0, 1, 2, 3].map((i) => (
+                                <TextInput
+                                    key={i}
+                                    keyboardType="number-pad"
+                                    maxLength={1}
+                                    value={otp[i]}
+                                    onChangeText={(text) => {
+                                        const newOtp = [...otp];
+                                        newOtp[i] = text;
+                                        setOtp(newOtp);
+                                        // Auto-verify if full (demo purpose)
+                                        if (newOtp.join('') === '1234') {
+                                            setIsOtpVerified(true);
+                                            setProgress(6);
+                                            setShowConfetti(true);
+                                            showNotification("Delivery Verified! Enjoy your Loop.", "success");
+                                        }
+                                    }}
+                                    className="w-14 h-16 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-2xl font-black text-brand-primary"
+                                />
+                            ))}
+                        </View>
+                        
+                        <View className="bg-brand-primary/10 p-4 rounded-2xl border border-brand-primary/20 items-center">
+                            <Text className="text-brand-primary font-black text-xs uppercase tracking-widest">Demo OTP: 1234</Text>
+                        </View>
+                    </View>
+                )}
 
                 {/* Delivered Gamification State */}
                 {isDelivered && (

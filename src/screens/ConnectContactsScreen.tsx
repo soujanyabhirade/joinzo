@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, FlatList, Alert, Platform, Share, Linking
 import * as Contacts from 'expo-contacts';
 import { Check, UserPlus, Home } from 'lucide-react-native';
 import { useNotification } from '../lib/NotificationContext';
+import { CONFIG } from '../lib/config';
 
 export const ConnectContactsScreen = ({ route, navigation }: any) => {
     const [contacts, setContacts] = useState<Contacts.Contact[]>([]);
@@ -48,14 +49,12 @@ export const ConnectContactsScreen = ({ route, navigation }: any) => {
     }, []);
 
     const handleInvite = async (contact?: Contacts.Contact) => {
-        // Generating a query-param based link for superior GitHub Pages compatibility
-        const baseUrl = 'https://soujanyabhirade.github.io/joinzo';
         const teamId = route.params?.teamId || `loop-${Math.random().toString(36).substring(7)}`;
-        const teamLink = `${baseUrl}/?teamId=${teamId}`;
+        const teamLink = `${CONFIG.APP_BASE_URL}/?teamId=${teamId}`;
         
         const message = contact 
-            ? `Hey ${contact.firstName}! Join my "${teamName}" Loop on Joinzo and unlock 30% discount! 🚀 We only need 2 more to unlock! \n\nDirect Join Link: ${teamLink}`
-            : `Join my "${teamName}" Loop on Joinzo and unlock 30% discount! 🚀 We only need 2 more to unlock! \n\nDirect Join Link: ${teamLink}`;
+            ? `Hey ${contact.firstName}! Join my "${teamName}" Loop on Joinzo and unlock 30% discount! 🚀\n\nJoin Link: ${teamLink}`
+            : `Join my "${teamName}" Loop on Joinzo and unlock 30% discount! 🚀\n\nJoin Link: ${teamLink}`;
 
         try {
             if (Platform.OS === 'web') {

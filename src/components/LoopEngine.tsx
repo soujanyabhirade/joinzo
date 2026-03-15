@@ -1,21 +1,32 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Share } from 'react-native';
 import { Users, Share2, MessageCircle } from 'lucide-react-native';
+import { CONFIG } from '../lib/config';
 
 interface LoopEngineProps {
     itemName: string;
     currentMembers: number;
     neededMembers: number;
     discount: string;
+    teamId?: string;
 }
 
-export const LoopEngine = ({ itemName, currentMembers, neededMembers, discount }: LoopEngineProps) => {
+export const LoopEngine = ({ itemName, currentMembers, neededMembers, discount, teamId }: LoopEngineProps) => {
     const progress = (currentMembers / neededMembers) * 100;
 
     const onShare = async () => {
+        const id = teamId || 'organic-milk-loop';
+        const link = `${CONFIG.APP_BASE_URL}/?teamId=${id}`;
+        
+        // On iOS, Share.share appends the URL automatically if url is provided.
+        // On Web/Android, it's better to include it in the message string.
+        const message = `Join my ${itemName} Loop on Joinzo and unlock ${discount} discount! 🚀\n\nWe only need ${neededMembers - currentMembers} more to unlock!\n\nJoin Link: ${link}`;
+        
         try {
             await Share.share({
-                message: `Join my ${itemName} Loop on Joinzo and unlock ${discount} discount! 🚀 We only need ${neededMembers - currentMembers} more to unlock!`,
+                message: message,
+                // Removing url property here to prevent duplication, as it's already in the message
+                title: `Join our ${itemName} Loop!`
             });
         } catch (error) {
             console.error(error);

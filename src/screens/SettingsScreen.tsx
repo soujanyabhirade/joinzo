@@ -104,6 +104,34 @@ export const SettingsScreen = ({ navigation }: any) => {
                 </View>
 
                 <View className="mt-8 mb-2 px-6">
+                    <Text className={`font-black text-[10px] uppercase tracking-widest ${isDarkMode ? 'text-gray-500' : 'text-text-secondary'}`}>Support & Legal</Text>
+                </View>
+                <View className={`${isDarkMode ? 'bg-[#121212] border-y border-white/10' : 'bg-white border-y border-gray-100'}`}>
+                    <SettingLink 
+                        icon={Globe} 
+                        label="Privacy Policy" 
+                        onPress={() => {
+                            if (Platform.OS === 'web') {
+                                window.open('/privacy-policy.html', '_blank');
+                            } else {
+                                Alert.alert("Privacy Policy", "Redirecting to our secure legal documents...");
+                            }
+                        }}
+                    />
+                    <SettingLink 
+                        icon={Shield} 
+                        label="Terms of Service" 
+                        onPress={() => {
+                            if (Platform.OS === 'web') {
+                                window.open('/terms-of-service.html', '_blank');
+                            } else {
+                                Alert.alert("Terms of Service", "Redirecting to our secure legal documents...");
+                            }
+                        }}
+                    />
+                </View>
+
+                <View className="mt-8 mb-2 px-6">
                     <Text className={`font-black text-[10px] uppercase tracking-widest ${isDarkMode ? 'text-gray-500' : 'text-text-secondary'}`}>Danger Zone</Text>
                 </View>
                 <View className={`${isDarkMode ? 'bg-[#121212] border-y border-white/10' : 'bg-white border-y border-gray-100'}`}>

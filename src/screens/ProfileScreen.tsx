@@ -15,6 +15,9 @@ export const ProfileScreen = ({ navigation }: any) => {
     const { showNotification } = useNotification();
     const { coinsBalance } = useCoins();
     const [orders, setOrders] = useState<any[]>([]);
+    const [partnerStatus, setPartnerStatus] = useState<string | null>(null);
+    const [riderStatus, setRiderStatus] = useState<string | null>(null);
+    const [loadingStatus, setLoadingStatus] = useState(true);
 
     const fetchOrders = useCallback(async () => {
         try {
@@ -31,11 +34,25 @@ export const ProfileScreen = ({ navigation }: any) => {
         }
     }, [user?.id]);
 
+    const fetchStatuses = useCallback(async () => {
+        try {
+            const { data: partner } = await supabase.from('partners').select('status').eq('user_id', user?.id).single();
+            const { data: rider } = await supabase.from('riders').select('status').eq('user_id', user?.id).single();
+            if (partner) setPartnerStatus(partner.status);
+            if (rider) setRiderStatus(rider.status);
+        } catch (err) {
+            console.log("Status fetch error:", err);
+        } finally {
+            setLoadingStatus(false);
+        }
+    }, [user?.id]);
+
     useEffect(() => {
         if (user) {
             fetchOrders();
+            fetchStatuses();
         }
-    }, [user, fetchOrders]);
+    }, [user, fetchOrders, fetchStatuses]);
 
     const handleReorder = async (orderId: string) => {
         const order = orders.find(o => o.id === orderId);
@@ -91,7 +108,10 @@ export const ProfileScreen = ({ navigation }: any) => {
 
                 {/* Sell on Joinzo / Partner Dashboard */}
                 <TouchableOpacity
-                    onPress={() => navigation.navigate('PartnerRegistration')}
+                    onPress={() => {
+                        if (partnerStatus === 'verified') navigation.navigate('AdminDashboard');
+                        else navigation.navigate('PartnerRegistration');
+                    }}
                     className="mb-3 rounded-3xl overflow-hidden shadow-lg"
                     style={{ backgroundColor: '#2E1065' }}
                     activeOpacity={0.85}
@@ -99,25 +119,31 @@ export const ProfileScreen = ({ navigation }: any) => {
                     <View className="p-6 flex-row items-center justify-between">
                         <View className="flex-1 pr-4">
                             <Text className="text-purple-300 font-black text-[10px] uppercase tracking-widest mb-1">🏪 Partner Program</Text>
-                            <Text className="text-white font-black text-2xl tracking-tighter">Sell on Joinzo</Text>
-                            <Text className="text-white/70 text-xs font-medium mt-2 leading-5">Register your shop & unlock the power of Loop group buying.</Text>
+                            <Text className="text-white font-black text-2xl tracking-tighter">
+                                {partnerStatus === 'verified' ? 'Partner Dashboard' : partnerStatus === 'pending' ? 'Verification Pending' : 'Sell on Joinzo'}
+                            </Text>
+                            <Text className="text-white/70 text-xs font-medium mt-2 leading-5">
+                                {partnerStatus === 'verified' ? 'Manage your shop, orders and loop analytics.' : partnerStatus === 'pending' ? 'We are reviewing your shop application. Usually takes 24h.' : 'Register your shop & unlock the power of Loop group buying.'}
+                            </Text>
                         </View>
                         <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center border border-white/20">
                             <Store size={24} color="#A78BFA" />
                         </View>
                     </View>
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate('PartnerInventory')}
-                        className="bg-white/10 mx-4 mb-4 p-3 rounded-2xl border border-white/10 flex-row items-center justify-center"
-                    >
-                        <Package size={14} color="#A78BFA" />
-                        <Text className="text-purple-300 font-black text-xs ml-2 uppercase tracking-wider">Manage Inventory →</Text>
-                    </TouchableOpacity>
+                    {partnerStatus === 'verified' && (
+                        <View className="bg-white/10 mx-4 mb-4 p-3 rounded-2xl border border-white/10 flex-row items-center justify-center">
+                            <Package size={14} color="#A78BFA" />
+                            <Text className="text-purple-300 font-black text-xs ml-2 uppercase tracking-wider">Manage Inventory →</Text>
+                        </View>
+                    )}
                 </TouchableOpacity>
 
                 {/* Deliver with Joinzo */}
                 <TouchableOpacity
-                    onPress={() => navigation.navigate('RiderRegistration')}
+                    onPress={() => {
+                        if (riderStatus === 'verified') navigation.navigate('RiderDashboard');
+                        else navigation.navigate('RiderRegistration');
+                    }}
                     className="mb-6 rounded-3xl overflow-hidden shadow-lg"
                     style={{ backgroundColor: '#064E3B' }}
                     activeOpacity={0.85}
@@ -125,20 +151,23 @@ export const ProfileScreen = ({ navigation }: any) => {
                     <View className="p-6 flex-row items-center justify-between">
                         <View className="flex-1 pr-4">
                             <Text className="text-emerald-300 font-black text-[10px] uppercase tracking-widest mb-1">🛵 Fleet Network</Text>
-                            <Text className="text-white font-black text-2xl tracking-tighter">Deliver with Joinzo</Text>
-                            <Text className="text-white/70 text-xs font-medium mt-2 leading-5">Earn ₹50 per order + 100% of tips. Weekly payouts.</Text>
+                            <Text className="text-white font-black text-2xl tracking-tighter">
+                                {riderStatus === 'verified' ? 'Rider Dashboard' : riderStatus === 'pending' ? 'Verification Pending' : 'Deliver with Joinzo'}
+                            </Text>
+                            <Text className="text-white/70 text-xs font-medium mt-2 leading-5">
+                                {riderStatus === 'verified' ? 'Manage your deliveries and track your earnings.' : riderStatus === 'pending' ? 'Your profile is under review. Get ready to hit the road!' : 'Earn ₹50 per order + 100% of tips. Weekly payouts.'}
+                            </Text>
                         </View>
                         <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center border border-white/20">
                             <Bike size={24} color="#6EE7B7" />
                         </View>
                     </View>
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate('RiderDashboard')}
-                        className="bg-white/10 mx-4 mb-4 p-3 rounded-2xl border border-white/10 flex-row items-center justify-center"
-                    >
-                        <Bike size={14} color="#6EE7B7" />
-                        <Text className="text-emerald-300 font-black text-xs ml-2 uppercase tracking-wider">Rider Dashboard →</Text>
-                    </TouchableOpacity>
+                    {riderStatus === 'verified' && (
+                        <View className="bg-white/10 mx-4 mb-4 p-3 rounded-2xl border border-white/10 flex-row items-center justify-center">
+                            <Bike size={14} color="#6EE7B7" />
+                            <Text className="text-emerald-300 font-black text-xs ml-2 uppercase tracking-wider">Rider Dashboard →</Text>
+                        </View>
+                    )}
                 </TouchableOpacity>
 
                 {/* Options List */}

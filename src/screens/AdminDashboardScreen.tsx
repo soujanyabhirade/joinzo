@@ -1,22 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Users, Bike, Package, TrendingUp, CheckCircle, XCircle, Clock, IndianRupee, ShoppingBag, Star, Shield } from 'lucide-react-native';
+import { ChevronLeft, Users, Bike, Package, TrendingUp, CheckCircle, XCircle, Clock, IndianRupee, ShoppingBag, Star, Shield, Zap } from 'lucide-react-native';
 import { useTheme } from '../lib/ThemeContext';
 import { useNotification } from '../lib/NotificationContext';
 import { supabase } from '../lib/supabase';
 
+interface Order {
+    id: string;
+    total_amount: number;
+    status: string;
+    created_at: string;
+    customer_name?: string;
+    items_count?: number;
+    building_id?: string;
+    payment_method?: string;
+    delivery_address?: string;
+}
+
 export const AdminDashboardScreen = ({ navigation }: any) => {
     const { isDarkMode } = useTheme();
     const { showNotification } = useNotification();
-    const [tab, setTab] = useState<'overview' | 'partners' | 'riders' | 'orders'>('overview');
+    const [tab, setTab] = useState<'overview' | 'partners' | 'riders' | 'orders' | 'community' | 'inventory'>('overview');
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
     // Data
     const [partners, setPartners] = useState<any[]>([]);
     const [riders, setRiders] = useState<any[]>([]);
-    const [orders, setOrders] = useState<any[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
     const [stats, setStats] = useState({ totalOrders: 0, totalRevenue: 0, totalPartners: 0, totalRiders: 0, pendingPartners: 0, pendingRiders: 0 });
 
     const bgBase = isDarkMode ? '#0A0A0A' : '#F8F9FA';
@@ -57,6 +69,36 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
     }, []);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    useEffect(() => {
+        // Real-time subscriptions
+        const partnersSub = supabase
+            .channel('admin-partners')
+            .on('postgres_changes', { event: '*', table: 'partners', schema: 'public' }, () => {
+                fetchAll();
+            })
+            .subscribe();
+
+        const ridersSub = supabase
+            .channel('admin-riders')
+            .on('postgres_changes', { event: '*', table: 'riders', schema: 'public' }, () => {
+                fetchAll();
+            })
+            .subscribe();
+
+        const ordersSub = supabase
+            .channel('admin-orders')
+            .on('postgres_changes', { event: '*', table: 'orders', schema: 'public' }, () => {
+                fetchAll();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(partnersSub);
+            supabase.removeChannel(ridersSub);
+            supabase.removeChannel(ordersSub);
+        };
+    }, [fetchAll]);
 
     const onRefresh = () => { setRefreshing(true); fetchAll(); };
 
@@ -100,9 +142,9 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
 
     const tabs = [
         { key: 'overview', label: '📊 Overview' },
+        { key: 'community', label: '🏘️ Communities' },
+        { key: 'inventory', label: '📦 Inventory' },
         { key: 'partners', label: `🏪 Partners (${stats.pendingPartners})` },
-        { key: 'riders', label: `🛵 Riders (${stats.pendingRiders})` },
-        { key: 'orders', label: `📦 Orders (${stats.totalOrders})` },
     ];
 
     return (
@@ -180,7 +222,12 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
 
                         {/* Recent Orders */}
                         <Text style={{ color: textColor }} className="font-black text-lg mt-6 mb-3">Recent Orders</Text>
-                        {orders.slice(0, 5).map(order => (
+                        {orders.length === 0 ? (
+                            <View className="p-8 items-center bg-white/5 rounded-3xl border border-white/5">
+                                <ShoppingBag size={40} color={subTextColor} />
+                                <Text style={{ color: subTextColor }} className="mt-3 font-bold">No orders processed yet</Text>
+                            </View>
+                        ) : orders.slice(0, 5).map(order => (
                             <View key={order.id} className="mb-2 p-4 rounded-2xl flex-row items-center justify-between" style={{ backgroundColor: surfaceBg, borderWidth: 1, borderColor }}>
                                 <View>
                                     <Text style={{ color: textColor }} className="font-black text-sm">#{order.id.slice(0, 8)}</Text>
@@ -190,13 +237,80 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
                             </View>
                         ))}
                     </View>
+                ) : tab === 'community' ? (
+                    /* ======================== COMMUNITY ANALYTICS ======================== */
+                    <View className="p-4">
+                        <Text style={{ color: textColor }} className="font-black text-2xl tracking-tighter italic mb-6">COMMUNITY<Text className="text-brand-primary"> PULSE</Text></Text>
+                        
+                        {[
+                            { name: 'Prestige Falcon City', loops: '84%', savings: '₹12,450', growth: '+12%' },
+                            { name: 'Brigade Gateway', loops: '72%', savings: '₹8,900', growth: '+5%' },
+                            { name: 'Sobha Dream Acres', loops: '91%', savings: '₹22,100', growth: '+18%' },
+                        ].map((building) => (
+                            <View key={building.name} className="mb-4 p-6 rounded-[32px] border border-brand-primary/10" style={{ backgroundColor: surfaceBg }}>
+                                <View className="flex-row items-center justify-between mb-4">
+                                    <Text style={{ color: textColor }} className="font-black text-lg">{building.name}</Text>
+                                    <View className="bg-emerald-500/10 px-3 py-1 rounded-full">
+                                        <Text className="text-emerald-600 font-bold text-[10px]">{building.growth}</Text>
+                                    </View>
+                                </View>
+                                <View className="flex-row justify-between">
+                                    <View>
+                                        <Text className="text-brand-primary font-black text-2xl">{building.loops}</Text>
+                                        <Text style={{ color: subTextColor }} className="font-bold text-[9px] uppercase">Loop Participation</Text>
+                                    </View>
+                                    <View className="items-end">
+                                        <Text style={{ color: textColor }} className="font-black text-2xl">{building.savings}</Text>
+                                        <Text style={{ color: subTextColor }} className="font-bold text-[9px] uppercase">Shared Savings</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
+                ) : tab === 'inventory' ? (
+                    /* ======================== INVENTORY MANAGEMENT ======================== */
+                    <View className="p-4">
+                        <Text style={{ color: textColor }} className="font-black text-2xl tracking-tighter italic mb-6">WH<Text className="text-brand-primary"> INVENTORY</Text></Text>
+                        
+                        <View className="flex-row gap-2 mb-6">
+                            <TouchableOpacity className="bg-brand-primary px-4 py-2 rounded-full">
+                                <Text className="text-white font-black text-[10px] uppercase">All Stock</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity className="bg-red-500/10 px-4 py-2 rounded-full border border-red-500/20">
+                                <Text className="text-red-500 font-black text-[10px] uppercase">Low Stock (8)</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity className="bg-amber-500/10 px-4 py-2 rounded-full border border-amber-500/20">
+                                <Text className="text-amber-500 font-black text-[10px] uppercase">Expiring (3)</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {[
+                            { name: 'Alphonso Mangoes', stock: 42, wh: 'Indiranagar Hub', status: 'Healthy' },
+                            { name: 'Nandini GoodLife Milk', stock: 8, wh: 'Indiranagar Hub', status: 'Restock' },
+                            { name: 'Avocado (2pcs)', stock: 5, wh: 'Indiranagar Hub', status: 'Expiring' },
+                        ].map((item) => (
+                            <View key={item.name} className="mb-3 p-5 rounded-[24px] flex-row items-center border border-gray-100" style={{ backgroundColor: surfaceBg }}>
+                                <View className="flex-1">
+                                    <Text style={{ color: textColor }} className="font-black text-sm">{item.name}</Text>
+                                    <Text style={{ color: subTextColor }} className="text-[10px] font-bold mt-1 uppercase">{item.wh}</Text>
+                                </View>
+                                <View className="items-end">
+                                    <Text style={{ color: item.status === 'Restock' ? '#EF4444' : textColor }} className="font-black text-lg">{item.stock}</Text>
+                                    <Text className={`font-black text-[9px] uppercase ${item.status === 'Healthy' ? 'text-emerald-500' : 'text-amber-500'}`}>{item.status}</Text>
+                                </View>
+                            </View>
+                        ))}
+                    </View>
                 ) : tab === 'partners' ? (
                     /* ======================== PARTNERS ======================== */
                     <View className="p-4">
                         {partners.length === 0 ? (
-                            <View className="items-center py-16">
-                                <Text style={{ fontSize: 48 }}>🏪</Text>
-                                <Text style={{ color: textColor }} className="font-black text-lg mt-4">No partner applications</Text>
+                            <View className="items-center py-20 bg-white/5 rounded-[40px] border border-white/5 mt-4">
+                                <View className="w-20 h-20 bg-brand-primary/10 rounded-full items-center justify-center mb-4">
+                                    <ShoppingBag size={40} color="#5A189A" />
+                                </View>
+                                <Text style={{ color: textColor }} className="font-black text-xl">No Applications</Text>
+                                <Text style={{ color: subTextColor }} className="text-center px-10 mt-2 font-medium">When shops register to join Joinzo, they'll appear here for your approval.</Text>
                             </View>
                         ) : partners.map(partner => (
                             <View key={partner.id} className="mb-3 rounded-[24px] overflow-hidden" style={{ backgroundColor: surfaceBg, borderWidth: 1, borderColor }}>
@@ -241,9 +355,12 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
                     /* ======================== RIDERS ======================== */
                     <View className="p-4">
                         {riders.length === 0 ? (
-                            <View className="items-center py-16">
-                                <Text style={{ fontSize: 48 }}>🛵</Text>
-                                <Text style={{ color: textColor }} className="font-black text-lg mt-4">No rider applications</Text>
+                            <View className="items-center py-20 bg-white/5 rounded-[40px] border border-white/5 mt-4">
+                                <View className="w-20 h-20 bg-brand-primary/10 rounded-full items-center justify-center mb-4">
+                                    <Zap size={40} color="#5A189A" />
+                                </View>
+                                <Text style={{ color: textColor }} className="font-black text-xl">Rider Queue Empty</Text>
+                                <Text style={{ color: subTextColor }} className="text-center px-10 mt-2 font-medium">New rider registrations will show up here for verification.</Text>
                             </View>
                         ) : riders.map(rider => (
                             <View key={rider.id} className="mb-3 rounded-[24px] overflow-hidden" style={{ backgroundColor: surfaceBg, borderWidth: 1, borderColor }}>

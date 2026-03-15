@@ -10,6 +10,7 @@ import { StatusBar, Platform } from 'react-native';
 import { AuthProvider, useAuth } from './src/lib/AuthContext';
 import { CartProvider } from './src/lib/CartContext';
 import { LocationProvider } from './src/lib/LocationContext';
+import { SecurityProvider } from './src/lib/SecurityContext';
 import { NotificationProvider } from './src/lib/NotificationContext';
 import { ThemeProvider } from './src/lib/ThemeContext';
 import { CoinsProvider } from './src/lib/CoinsContext';
@@ -39,6 +40,13 @@ import { RateOrderScreen } from './src/screens/RateOrderScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { OrderHistoryScreen } from './src/screens/OrderHistoryScreen';
 import { AdminDashboardScreen } from './src/screens/AdminDashboardScreen';
+import { OnboardingScreen } from './src/screens/OnboardingScreen';
+import { JoinzoPlusScreen } from './src/screens/JoinzoPlusScreen';
+import { BuildingSelectionScreen } from './src/screens/BuildingSelectionScreen';
+import { PilotDashboard } from './src/screens/PilotDashboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { OfflineBanner } from './src/components/OfflineBanner';
 
 
 const Stack = createNativeStackNavigator();
@@ -60,13 +68,25 @@ const linking = {
 
 const RootNavigator = () => {
     const { session, isLoading } = useAuth();
+    const [showOnboarding, setShowOnboarding] = React.useState<boolean | null>(null);
 
-    if (isLoading) {
-        return null; // Could return a Splash screen here
+    React.useEffect(() => {
+        const checkOnboarding = async () => {
+            const complete = await AsyncStorage.getItem('@joinzo_onboarding_complete');
+            setShowOnboarding(complete !== 'true');
+        };
+        checkOnboarding();
+    }, []);
+
+    if (isLoading || showOnboarding === null) {
+        return null;
     }
 
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {showOnboarding && session ? (
+                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            ) : null}
             {session ? (
                 // User is signed in
                 <>
@@ -93,6 +113,9 @@ const RootNavigator = () => {
                     <Stack.Screen name="Notifications" component={NotificationsScreen} />
                     <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
                     <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+                    <Stack.Screen name="JoinzoPlus" component={JoinzoPlusScreen} />
+                    <Stack.Screen name="BuildingSelection" component={BuildingSelectionScreen} />
+        <Stack.Screen name="Pilot" component={PilotDashboard} />
 
                 </>
             ) : (
@@ -105,21 +128,26 @@ const RootNavigator = () => {
 
 export default function App() {
     return (
-        <AuthProvider>
-            <ThemeProvider>
-                <LocationProvider>
-                    <CartProvider>
-                        <CoinsProvider>
-                            <NotificationProvider>
-                                <StatusBar barStyle="light-content" />
-                                <NavigationContainer linking={linking}>
-                                    <RootNavigator />
-                                </NavigationContainer>
-                            </NotificationProvider>
-                        </CoinsProvider>
-                    </CartProvider>
-                </LocationProvider>
-            </ThemeProvider>
-        </AuthProvider>
+        <SecurityProvider>
+            <AuthProvider>
+                <ThemeProvider>
+                    <LocationProvider>
+                        <CartProvider>
+                            <CoinsProvider>
+                                <NotificationProvider>
+                                    <StatusBar barStyle="light-content" />
+                                    <NavigationContainer>
+                                        <ErrorBoundary>
+                                            <OfflineBanner />
+                                            <RootNavigator />
+                                        </ErrorBoundary>
+                                    </NavigationContainer>
+                                </NotificationProvider>
+                            </CoinsProvider>
+                        </CartProvider>
+                    </LocationProvider>
+                </ThemeProvider>
+            </AuthProvider>
+        </SecurityProvider>
     );
 }

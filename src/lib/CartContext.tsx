@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
 
 export type CartItem = {
     id: number;
@@ -59,6 +61,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }, [favorites, isLoaded]);
 
     const addToCart = (newItem: CartItem) => {
+        // Tactile Feedback
+        if (Platform.OS !== 'web') {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+        
         setCartItems(prev => {
             const existing = prev.find(item => item.id === newItem.id && item.type === newItem.type);
             if (existing) {

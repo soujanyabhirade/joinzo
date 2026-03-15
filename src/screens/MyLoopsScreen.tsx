@@ -1,49 +1,68 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { ChevronLeft, Users, Zap, Clock, TrendingDown, CheckCircle2, ShoppingBag } from 'lucide-react-native';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
+import { useTheme } from '../lib/ThemeContext';
+import { useNotification } from '../lib/NotificationContext';
+import { RiderOrderSkeleton } from '../components/Skeleton';
 
 const { width } = Dimensions.get('window');
 
-const MOCK_ACTIVE_LOOPS = [
-    {
-        id: 'l1',
-        name: "Organic Whole Milk",
-        image: "https://images.unsplash.com/photo-1563636619-e910ef2a844b?w=400&q=80",
-        currentMembers: 3,
-        targetMembers: 5,
-        discount: "30%",
-        timeLeft: "12:45",
-        status: "Active",
-        neighborAvatars: ["👨‍🍳", "👩‍🌾", "👨‍💻"]
-    },
-    {
-        id: 'l2',
-        name: "Hass Avocados",
-        image: "https://images.unsplash.com/photo-1523049673857-eb18f1d7b560?w=400&q=80",
-        currentMembers: 8,
-        targetMembers: 10,
-        discount: "45%",
-        timeLeft: "05:12",
-        status: "Active",
-        neighborAvatars: ["👨‍🎨", "👩‍🚀", "👨‍🚒", "👩‍🏫", "👨‍🔧"]
-    }
-];
-
-const MOCK_COMPLETED_LOOPS = [
-    {
-        id: 'l3',
-        name: "Artisan Sourdough",
-        image: "https://images.unsplash.com/photo-1585478259715-876a23d1ffbb?w=400&q=80",
-        currentMembers: 5,
-        targetMembers: 5,
-        discount: "25%",
-        status: "Delivered",
-        date: "Today"
-    }
-];
+interface LoopOrder {
+    id: string;
+    product_name: string;
+    price_at_order: number;
+    quantity: number;
+    status: string;
+    created_at: string;
+    type: string;
+    image_url?: string;
+}
 
 export const MyLoopsScreen = ({ navigation }: any) => {
+    const { isDarkMode } = useTheme();
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+    const [loops, setLoops] = useState<LoopOrder[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchLoops = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('order_items')
+                .select(`
+                    *,
+                    orders!inner(user_id, status)
+                `)
+                .eq('orders.user_id', user?.id)
+                .eq('type', 'Loop')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setLoops(data || []);
+        } catch (err) {
+            console.error('Fetch loops error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchLoops();
+
+        const sub = supabase
+            .channel('my-loops')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+                fetchLoops();
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(sub); };
+    }, [user?.id]);
+
+    const activeLoops = loops.filter(l => l.status !== 'delivered' && l.status !== 'cancelled');
+    const completedLoops = loops.filter(l => l.status === 'delivered' || l.status === 'cancelled');
 
     return (
         <View className="flex-1 bg-ui-background">
@@ -64,50 +83,54 @@ export const MyLoopsScreen = ({ navigation }: any) => {
                     onPress={() => setActiveTab('active')}
                     className={`flex-1 py-3 rounded-2xl items-center border ${activeTab === 'active' ? 'bg-brand-primary border-brand-primary' : 'bg-white border-gray-200'}`}
                 >
-                    <Text className={`font-black uppercase text-xs ${activeTab === 'active' ? 'text-white' : 'text-text-secondary'}`}>Active</Text>
+                    <Text className={`font-black uppercase text-xs ${activeTab === 'active' ? 'text-white' : 'text-text-secondary'}`}>Active ({activeLoops.length})</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                     onPress={() => setActiveTab('completed')}
                     className={`flex-1 py-3 rounded-2xl items-center border ${activeTab === 'completed' ? 'bg-brand-primary border-brand-primary' : 'bg-white border-gray-200'}`}
                 >
-                    <Text className={`font-black uppercase text-xs ${activeTab === 'completed' ? 'text-white' : 'text-text-secondary'}`}>History</Text>
+                    <Text className={`font-black uppercase text-xs ${activeTab === 'completed' ? 'text-white' : 'text-text-secondary'}`}>History ({completedLoops.length})</Text>
                 </TouchableOpacity>
             </View>
 
             <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
-                {activeTab === 'active' ? (
-                    MOCK_ACTIVE_LOOPS.length > 0 ? (
-                        MOCK_ACTIVE_LOOPS.map((loop) => (
+                {loading ? (
+                    <View className="mt-4">
+                        {[1, 2, 3].map(i => <RiderOrderSkeleton key={i} />)}
+                    </View>
+                ) : activeTab === 'active' ? (
+                    activeLoops.length > 0 ? (
+                        activeLoops.map((loop) => (
                             <View key={loop.id} className="bg-white border border-gray-100 rounded-[32px] p-5 mb-6 shadow-md shadow-brand-primary/5">
                                 <View className="flex-row items-center justify-between mb-4">
                                     <View className="flex-row items-center">
-                                        <View className="w-12 h-12 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100">
-                                            <Image source={{ uri: loop.image }} className="w-full h-full" resizeMode="cover" />
+                                        <View className="w-12 h-12 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 items-center justify-center">
+                                            <ShoppingBag size={24} color="#5A189A" />
                                         </View>
                                         <View className="ml-3">
-                                            <Text className="text-text-primary font-black text-lg tracking-tight">{loop.name}</Text>
+                                            <Text className="text-text-primary font-black text-lg tracking-tight">{loop.product_name}</Text>
                                             <View className="flex-row items-center">
                                                 <Zap size={10} color="#5A189A" />
-                                                <Text className="text-brand-primary font-black text-[10px] uppercase ml-1 tracking-widest">{loop.discount} OFF SECURED</Text>
+                                                <Text className="text-brand-primary font-black text-[10px] uppercase ml-1 tracking-widest">20% OFF SECURED</Text>
                                             </View>
                                         </View>
                                     </View>
                                     <View className="bg-orange-50 px-3 py-1 rounded-full border border-orange-100 flex-row items-center">
                                         <Clock size={10} color="#EA580C" />
-                                        <Text className="text-orange-600 font-black text-[10px] ml-1">{loop.timeLeft}</Text>
+                                        <Text className="text-orange-600 font-black text-[10px] ml-1">Live</Text>
                                     </View>
                                 </View>
 
-                                {/* Progress Bar */}
+                                {/* Progress Bar (Mocked for now as we don't have global loop state) */}
                                 <View className="mb-4">
                                     <View className="flex-row justify-between mb-2">
                                         <Text className="text-text-secondary font-bold text-[10px] uppercase">Neighbors Joined</Text>
-                                        <Text className="text-text-primary font-black text-[10px]">{loop.currentMembers}/{loop.targetMembers}</Text>
+                                        <Text className="text-text-primary font-black text-[10px]">3/5</Text>
                                     </View>
                                     <View className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden border border-gray-200/50">
                                         <View 
                                             className="h-full bg-brand-primary" 
-                                            style={{ width: `${(loop.currentMembers / loop.targetMembers) * 100}%` }} 
+                                            style={{ width: `60%` }} 
                                         />
                                     </View>
                                 </View>
@@ -116,16 +139,16 @@ export const MyLoopsScreen = ({ navigation }: any) => {
                                 <View className="flex-row items-center justify-between mt-2">
                                     <View className="flex-row items-center">
                                         <View className="flex-row -space-x-2">
-                                            {loop.neighborAvatars.map((av, i) => (
+                                            {["👨‍🍳", "👩‍🌾", "👨‍💻"].map((av, i) => (
                                                 <View key={i} className="w-7 h-7 rounded-full bg-white border border-gray-200 items-center justify-center shadow-sm">
                                                     <Text className="text-xs">{av}</Text>
                                                 </View>
                                             ))}
                                         </View>
-                                        <Text className="text-text-secondary font-bold text-[10px] ml-3">+ {loop.targetMembers - loop.currentMembers} more needed</Text>
+                                        <Text className="text-text-secondary font-bold text-[10px] ml-3">+ 2 more needed</Text>
                                     </View>
                                     <TouchableOpacity 
-                                        onPress={() => navigation.navigate('ConnectContacts', { teamName: loop.name })}
+                                        onPress={() => navigation.navigate('ConnectContacts', { teamName: loop.product_name })}
                                         className="bg-brand-primary/10 px-4 py-2 rounded-xl flex-row items-center border border-brand-primary/20"
                                     >
                                         <Users size={12} color="#5A189A" />
@@ -147,25 +170,31 @@ export const MyLoopsScreen = ({ navigation }: any) => {
                         </View>
                     )
                 ) : (
-                    MOCK_COMPLETED_LOOPS.map((loop) => (
-                        <View key={loop.id} className="bg-gray-50 border border-gray-100 rounded-[32px] p-5 mb-4 opacity-80 shadow-sm">
-                            <View className="flex-row items-center justify-between">
-                                <View className="flex-row items-center">
-                                    <View className="w-12 h-12 rounded-2xl overflow-hidden bg-white border border-gray-100 grayscale">
-                                        <Image source={{ uri: loop.image }} className="w-full h-full" resizeMode="cover" />
-                                    </View>
-                                    <View className="ml-3">
-                                        <Text className="text-text-primary font-bold text-base">{loop.name}</Text>
-                                        <View className="flex-row items-center">
-                                            <CheckCircle2 size={10} color="#10B981" />
-                                            <Text className="text-green-600 font-bold text-[10px] uppercase ml-1 tracking-widest">{loop.status} • SAVE {loop.discount}</Text>
+                    completedLoops.length > 0 ? (
+                        completedLoops.map((loop) => (
+                            <View key={loop.id} className="bg-gray-50 border border-gray-100 rounded-[32px] p-5 mb-4 opacity-80 shadow-sm">
+                                <View className="flex-row items-center justify-between">
+                                    <View className="flex-row items-center">
+                                        <View className="w-12 h-12 rounded-2xl overflow-hidden bg-white border border-gray-100 items-center justify-center grayscale">
+                                            <ShoppingBag size={24} color="#9CA3AF" />
+                                        </View>
+                                        <View className="ml-3">
+                                            <Text className="text-text-primary font-bold text-base">{loop.product_name}</Text>
+                                            <View className="flex-row items-center">
+                                                <CheckCircle2 size={10} color="#10B981" />
+                                                <Text className="text-green-600 font-bold text-[10px] uppercase ml-1 tracking-widest">{loop.status} • SAVE 20%</Text>
+                                            </View>
                                         </View>
                                     </View>
+                                    <Text className="text-text-secondary font-bold text-[10px] uppercase">{new Date(loop.created_at).toLocaleDateString()}</Text>
                                 </View>
-                                <Text className="text-text-secondary font-bold text-[10px] uppercase">{loop.date}</Text>
                             </View>
+                        ))
+                    ) : (
+                        <View className="items-center justify-center py-20">
+                            <Text className="text-text-secondary font-bold">No history available.</Text>
                         </View>
-                    ))
+                    )
                 )}
                 
                 {/* Motivational Banner */}
