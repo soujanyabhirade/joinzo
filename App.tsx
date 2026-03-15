@@ -54,7 +54,7 @@ const Stack = createNativeStackNavigator();
 const prefix = Linking.createURL('/');
 
 const linking = {
-    prefixes: [prefix, 'https://soujanyabhirade.github.io/joinzo'],
+    prefixes: [prefix, 'https://joinzo.app'],
     config: {
         screens: {
             Home: '',
