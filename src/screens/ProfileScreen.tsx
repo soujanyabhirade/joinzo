@@ -6,7 +6,7 @@ import { useLocation } from '../lib/LocationContext';
 import { useNotification } from '../lib/NotificationContext';
 import { supabase } from '../lib/supabase';
 import { useCoins } from '../lib/CoinsContext';
-import { User, LogOut, Settings, CreditCard, HelpCircle, ChevronLeft, Package, RotateCw, Heart, MapPin, Trash2, Zap, Store, Bike, Gift } from 'lucide-react-native';
+import { User, LogOut, Settings, CreditCard, HelpCircle, ChevronLeft, Package, RotateCw, Heart, MapPin, Trash2, Zap, Store, Bike, Gift, Bell, ClipboardList } from 'lucide-react-native';
 
 export const ProfileScreen = ({ navigation }: any) => {
     const { user } = useAuth();
@@ -143,6 +143,17 @@ export const ProfileScreen = ({ navigation }: any) => {
 
                 {/* Options List */}
                 <View className="bg-white rounded-3xl p-2 border border-gray-100 mb-6 shadow-sm">
+                    <TouchableOpacity onPress={() => navigation.navigate('Notifications')} className="flex-row items-center p-4 border-b border-gray-50">
+                        <Bell size={20} color="#EF4444" />
+                        <Text className="text-text-primary font-bold ml-4 flex-1">Notifications</Text>
+                        <View className="bg-red-500 rounded-full w-5 h-5 items-center justify-center">
+                            <Text className="text-white font-black text-[9px]">3</Text>
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate('OrderHistory')} className="flex-row items-center p-4 border-b border-gray-50">
+                        <ClipboardList size={20} color="#5A189A" />
+                        <Text className="text-text-primary font-bold ml-4 flex-1">Order History</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('MyLoops')} className="flex-row items-center p-4 border-b border-gray-50">
                         <Zap size={20} color="#5A189A" />
                         <Text className="text-text-primary font-bold ml-4 flex-1">My Active Loops</Text>
