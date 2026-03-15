@@ -38,6 +38,7 @@ import { RiderDashboardScreen } from './src/screens/RiderDashboardScreen';
 import { RateOrderScreen } from './src/screens/RateOrderScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { OrderHistoryScreen } from './src/screens/OrderHistoryScreen';
+import { AdminDashboardScreen } from './src/screens/AdminDashboardScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -91,6 +92,7 @@ const RootNavigator = () => {
                     <Stack.Screen name="RateOrder" component={RateOrderScreen} />
                     <Stack.Screen name="Notifications" component={NotificationsScreen} />
                     <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+                    <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
 
                 </>
             ) : (

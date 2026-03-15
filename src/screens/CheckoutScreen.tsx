@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { useNotification } from '../lib/NotificationContext';
 import { SwipeButton } from '../components/SwipeButton';
+import { openRazorpayCheckout, formatAmountForRazorpay, isRazorpayConfigured } from '../lib/razorpay';
 
 export const CheckoutScreen = ({ navigation }: any) => {
     const [apartment, setApartment] = useState('');
@@ -95,7 +96,7 @@ export const CheckoutScreen = ({ navigation }: any) => {
     };
 
     const handlePayment = async (methodId: string) => {
-        if (isProcessing) return; // Debounce mechanism
+        if (isProcessing) return;
         setIsProcessing(true);
 
         try {
@@ -103,7 +104,7 @@ export const CheckoutScreen = ({ navigation }: any) => {
                 throw new Error("Your cart is empty!");
             }
 
-            // 1. Validating Product Availability before charging (Backend Check)
+            // 1. Validate stock
             const itemIds = cartItems.map(item => item.id);
             const { data: stockData, error: stockError } = await supabase
                 .from('products')
@@ -112,70 +113,91 @@ export const CheckoutScreen = ({ navigation }: any) => {
 
             if (stockError) throw stockError;
 
-            // Check if any items are flagged as out of stock by the backend response
             const outOfStock = stockData?.find(p => !p.is_in_stock);
             if (outOfStock) {
-                throw new Error(`${outOfStock.name} is currently out of stock. Please remove it from your cart.`);
+                throw new Error(`${outOfStock.name} is currently out of stock.`);
             }
 
-            // 2. Demo User Check & Bypass
+            // 2. Demo user bypass
             const isDemoUser = user?.id === '00000000-0000-0000-0000-000000000000';
-            
-            if (isDemoUser) {
-                console.log("Demo session detected, bypassing database insertions.");
-                await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 3. Insert order into Supabase
+            let orderId = `demo_${Date.now()}`;
+            if (!isDemoUser) {
+                const { data: orderData, error: orderError } = await supabase
+                    .from('orders')
+                    .insert({
+                        user_id: user?.id,
+                        total_amount: finalTotal,
+                        status: 'placed',
+                        payment_method: methodId,
+                        delivery_address: apartment || 'Not specified',
+                    })
+                    .select()
+                    .single();
+
+                if (orderError) throw orderError;
+                orderId = orderData.id;
+
+                // Insert order items
+                const orderItemsData = cartItems.map(item => ({
+                    order_id: orderData.id,
+                    product_id: String(item.id),
+                    quantity: item.qty,
+                    price_at_order: item.price,
+                    product_name: item.name
+                }));
+                await supabase.from('order_items').insert(orderItemsData);
+            }
+
+            // 4. Process Payment based on method
+            if (methodId === 'cod') {
+                // Cash on Delivery — no gateway needed
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                if (!isDemoUser) {
+                    await supabase.from('orders').update({ status: 'confirmed' }).eq('id', orderId);
+                }
                 clearCart();
                 setShowPayment(false);
-                showNotification("Payment successful! Tracking your order.", "success");
-                navigation.navigate("TrackOrder", { triggerConfetti: true });
-                return;
+                showNotification("Order placed! Pay ₹" + finalTotal + " on delivery.", "success");
+                navigation.navigate("TrackOrder", { triggerConfetti: true, orderId });
+            } else {
+                // Razorpay — UPI / Card / Wallet
+                openRazorpayCheckout({
+                    amount: formatAmountForRazorpay(finalTotal),
+                    description: `Joinzo Order - ${cartItems.length} items`,
+                    customerEmail: user?.email || '',
+                    onSuccess: async (response) => {
+                        // Payment success — update order
+                        if (!isDemoUser) {
+                            await supabase.from('orders').update({
+                                status: 'confirmed',
+                                payment_method: methodId,
+                            }).eq('id', orderId);
+                        }
+                        clearCart();
+                        setShowPayment(false);
+                        setIsProcessing(false);
+                        showNotification(`Payment successful! ID: ${response.razorpay_payment_id}`, "success");
+                        navigation.navigate("TrackOrder", { triggerConfetti: true, orderId });
+                    },
+                    onFailure: (error) => {
+                        setIsProcessing(false);
+                        showNotification(error.message || "Payment failed. Try again.", "error");
+                        // Cancel the order if payment failed
+                        if (!isDemoUser) {
+                            supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
+                        }
+                    },
+                });
+                return; // Don't reset isProcessing here — Razorpay callback will do it
             }
-
-            // 3. Insert Order into Supabase accurately
-            const { data: orderData, error: orderError } = await supabase
-                .from('orders')
-                .insert({
-                    user_id: user?.id,
-                    total_amount: finalTotal,
-                    status: 'placed',
-                })
-                .select()
-                .single();
-
-            if (orderError) throw orderError;
-
-            // 4. Insert Order Items
-            const orderItemsData = cartItems.map(item => ({
-                order_id: orderData.id,
-                product_id: item.id,
-                quantity: item.qty,
-                price_at_order: item.price,
-                product_name: item.name
-            }));
-
-            const { error: itemsError } = await supabase
-                .from('order_items')
-                .insert(orderItemsData);
-
-            if (itemsError) {
-                console.error("Error inserting order items:", itemsError);
-            }
-
-            // 5. Simulate Gateway Delay Processing
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            // 6. Success Navigation & State Reset
-            clearCart();
-            setShowPayment(false);
-            showNotification("Payment successful! Tracking your order.", "success");
-            navigation.navigate("TrackOrder", { triggerConfetti: true, orderId: orderData.id });
 
         } catch (error: any) {
             console.error("Payment Flow Error:", error);
-            // Even if DB insert fails (e.g. unknown RLS or mock user), allow user to proceed in prototype mode
             Alert.alert(
                 "Demo Notice", 
-                "We couldn't save your order to the database (possibly due to demo account restrictions), but we'll show you the tracking experience anyway!",
+                "We couldn't save your order to the database, but we'll show you the tracking experience anyway!",
                 [{ 
                     text: "Track Order", 
                     onPress: () => {
@@ -186,7 +208,6 @@ export const CheckoutScreen = ({ navigation }: any) => {
                 }]
             );
         } finally {
-            // Restore button operability if failed or unmounted
             setIsProcessing(false);
         }
     };
