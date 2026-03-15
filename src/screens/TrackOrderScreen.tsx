@@ -9,12 +9,14 @@ import { Alert, Platform } from 'react-native';
 
 export const TrackOrderScreen = ({ route, navigation }: any) => {
     const { showNotification } = useNotification();
+    const orderId = route.params?.orderId || null;
     const [progress, setProgress] = useState(1);
     const [showConfetti, setShowConfetti] = useState(route.params?.triggerConfetti || false);
     const [secondsRemaining, setSecondsRemaining] = useState(60);
     const [canCancel, setCanCancel] = useState(true);
     const [spinState, setSpinState] = useState<'idle' | 'spinning' | 'won' | 'lost'>('idle');
     const [unboxingClicks, setUnboxingClicks] = useState(0);
+    const [isSimulating, setIsSimulating] = useState(false);
 
     // Mock Driver Location
     const destination = { latitude: 12.9716, longitude: 77.5946 };
@@ -59,33 +61,56 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
         }
     };
 
-    // Supabase Realtime Tracking
+    // Supabase Realtime Tracking — subscribes to specific order row
     useEffect(() => {
-        // Fallback timer simulation in case the database isn't updated
-        const timer1 = setTimeout(() => setProgress(2), 15000);
-        const timer2 = setTimeout(() => setProgress(3), 30000);
+        if (!orderId) {
+            // Demo mode: auto-advance timeline with timers
+            const t1 = setTimeout(() => setProgress(2), 8000);
+            const t2 = setTimeout(() => setProgress(3), 20000);
+            const t3 = setTimeout(() => setProgress(4), 35000);
+            return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+        }
 
         const channel = supabase
-            .channel('realtime-tracking')
+            .channel(`order-${orderId}`)
             .on(
                 'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'orders' },
+                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
                 (payload: any) => {
                     const status = payload.new.status;
-                    console.log("Realtime Update Received:", payload);
-                    if (status === 'packed') setProgress(2);
-                    else if (status === 'out_for_delivery') setProgress(3);
-                    else if (status === 'delivered') setProgress(4);
+                    console.log("Realtime Update:", status);
+                    if (status === 'confirmed') setProgress(2);
+                    else if (status === 'packed') setProgress(3);
+                    else if (status === 'out_for_delivery') setProgress(4);
+                    else if (status === 'delivered') { setProgress(5); setShowConfetti(true); }
                 }
             )
             .subscribe();
 
-        return () => {
-            clearTimeout(timer1);
-            clearTimeout(timer2);
-            supabase.removeChannel(channel);
-        };
-    }, []);
+        return () => { supabase.removeChannel(channel); };
+    }, [orderId]);
+
+    // Demo Simulator: manually advance order step by step
+    const handleSimulate = async () => {
+        if (isSimulating || !orderId) return;
+        setIsSimulating(true);
+        const nextStatus = ['confirmed', 'packed', 'out_for_delivery', 'delivered'][progress - 1];
+        if (!nextStatus) { setIsSimulating(false); return; }
+        await supabase.from('orders').update({ status: nextStatus }).eq('id', orderId);
+        setIsSimulating(false);
+        showNotification(`Order status → ${nextStatus}`, "success");
+    };
+
+    // Fallback simulator for demo (no real orderId)
+    const handleDemoAdvance = () => {
+        if (progress < 5) {
+            const next = progress + 1;
+            setProgress(next);
+            if (next === 5) { setShowConfetti(true); }
+            const labels = ['', 'Placed', 'Confirmed', 'Packed', 'Out for Delivery', 'Delivered'];
+            showNotification(`↗ ${labels[next]}`, "success");
+        }
+    };
 
     // Simulate Driver Movement when Out for Delivery
     useEffect(() => {
@@ -142,10 +167,13 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
 
     const steps = [
         { id: 1, title: 'Order Placed', desc: 'We have received your order', icon: Package },
-        { id: 2, title: 'Item Packed', desc: 'Rider is picking up from the hub', icon: CheckCircle2 },
-        { id: 3, title: 'Out for Delivery', desc: 'Rider is on the way to your gate', icon: Truck },
-        { id: 4, title: 'Delivered', desc: 'Order dropped at Gate 2', icon: MapPin },
+        { id: 2, title: 'Confirmed', desc: 'Store confirmed & started packing', icon: CheckCircle2 },
+        { id: 3, title: 'Item Packed', desc: 'Rider collecting from the hub', icon: CheckCircle2 },
+        { id: 4, title: 'Out for Delivery', desc: 'Rider is on the way to your gate', icon: Truck },
+        { id: 5, title: 'Delivered! 🎉', desc: 'Order dropped at your gate', icon: MapPin },
     ];
+
+    const isDelivered = progress >= 5;
 
     return (
         <View className="flex-1 bg-ui-background">
@@ -166,14 +194,31 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1 p-6">
+            <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+                {/* Demo Simulator Banner */}
+                {progress < 5 && (
+                    <TouchableOpacity
+                        onPress={orderId ? handleSimulate : handleDemoAdvance}
+                        disabled={isSimulating}
+                        className="mb-6 bg-indigo-950 border border-indigo-700 p-4 rounded-3xl flex-row items-center justify-between"
+                    >
+                        <View>
+                            <Text className="text-indigo-300 font-black text-[10px] uppercase tracking-widest mb-0.5">⚡ Demo Mode</Text>
+                            <Text className="text-white font-bold text-sm">{isSimulating ? 'Updating...' : 'Simulate Next Step →'}</Text>
+                        </View>
+                        <View className="bg-indigo-700 px-3 py-1.5 rounded-full">
+                            <Text className="text-white font-black text-xs">{progress}/5</Text>
+                        </View>
+                    </TouchableOpacity>
+                )}
+
                 <View className="flex-row justify-between mb-6 px-1">
                     <View>
                         <Text className="text-text-secondary font-bold text-xs uppercase mb-1">Estimated Arrival</Text>
-                        <Text className="text-brand-primary font-black text-3xl">7 mins</Text>
+                        <Text className="text-brand-primary font-black text-3xl">{isDelivered ? 'Delivered ✓' : '7 mins'}</Text>
                     </View>
                     <View className="items-end justify-center">
-                        <CountdownTimer minutes={10} />
+                        {!isDelivered && <CountdownTimer minutes={10} />}
                     </View>
                 </View>
 
@@ -209,7 +254,7 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
                 </View>
 
                 {/* Delivered Gamification State */}
-                {progress >= 4 && (
+                {isDelivered && (
                     <View className="mb-8">
                         {unboxingClicks < 3 ? (
                             <TouchableOpacity 
@@ -286,8 +331,8 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
                     </View>
                 )}
 
-                {/* Live Driver Tracking Map (Only when active delivery) */}
-                {progress === 3 && (
+                {/* Live Driver Tracking Map (Only when out for delivery) */}
+                {progress === 4 && (
                     <View className="bg-ui-surface rounded-3xl p-2 border border-brand-primary h-64 mb-8 overflow-hidden shadow-sm shadow-brand-primary/20">
                         <View className="absolute top-4 left-4 z-10 bg-brand-primary/90 px-3 py-1.5 rounded-full flex-row items-center border border-white/20">
                             <Navigation size={12} color="#FFF" />
@@ -322,7 +367,7 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
                 )}
 
                 {/* Rider Info */}
-                {progress >= 3 && (
+                {progress >= 4 && (
                     <View className="bg-ui-surface rounded-3xl p-4 border border-gray-200 shadow-sm flex-row items-center justify-between">
                         <View className="flex-row items-center">
                             <View className="w-12 h-12 rounded-full bg-ui-background border border-brand-primary items-center justify-center overflow-hidden">

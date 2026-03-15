@@ -4,12 +4,16 @@ import { MapPin, Users, ArrowRight, ChevronLeft } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 
-export const CreateTeamScreen = ({ navigation }: any) => {
+export const CreateTeamScreen = ({ route, navigation }: any) => {
     const { user } = useAuth();
     const [teamName, setTeamName] = useState('');
     const [gateNumber, setGateNumber] = useState('');
     const [loading, setLoading] = useState(false);
     const [showAutoMatch, setShowAutoMatch] = useState(true);
+
+    // Deep link handling: If we arrived here via a loop/:teamId link
+    const inviteTeamId = route.params?.teamId;
+    const isJoiningInvite = inviteTeamId && !inviteTeamId.startsWith('mock-');
 
     const mockExistingLoops = [
         { id: 'm1', name: 'Tower A - Fresh Veggies', gate: 'Gate 1', members: 4, needed: 5 },
@@ -29,6 +33,17 @@ export const CreateTeamScreen = ({ navigation }: any) => {
 
         setLoading(true);
         try {
+            // Check if it's a demo user (all zeros ID)
+            const isDemoUser = user.id === '00000000-0000-0000-0000-000000000000';
+
+            if (isDemoUser) {
+                console.log("Demo session detected, bypassing database insert.");
+                // Simulate a delay
+                await new Promise(resolve => setTimeout(resolve, 800));
+                navigation.navigate('ConnectContacts', { teamId: 'demo-' + Date.now(), teamName: teamName });
+                return;
+            }
+
             const { data, error } = await supabase
                 .from('teams')
                 .insert([
@@ -43,7 +58,12 @@ export const CreateTeamScreen = ({ navigation }: any) => {
             navigation.navigate('ConnectContacts', { teamId: data.id, teamName: data.name });
 
         } catch (error: any) {
-            Alert.alert("Error Creating Loop", error.message);
+            console.error("Team Creation Error:", error);
+            Alert.alert(
+                "Demo Mode Notice", 
+                "We couldn't save your loop to the database (possibly due to demo account restrictions). We'll proceed with a temporary loop instead!",
+                [{ text: "Continue", onPress: () => navigation.navigate('ConnectContacts', { teamId: 'fallback-' + Date.now(), teamName: teamName }) }]
+            );
         } finally {
             setLoading(false);
         }
@@ -59,7 +79,47 @@ export const CreateTeamScreen = ({ navigation }: any) => {
             </View>
 
             <View className="p-6">
-                {showAutoMatch ? (
+                {isJoiningInvite ? (
+                    <View className="items-center py-10">
+                        <View className="bg-brand-primary/10 p-8 rounded-full mb-6 border-2 border-brand-primary/30 shadow-xl shadow-brand-primary/5">
+                            <Users size={64} color="#5A189A" />
+                        </View>
+                        <Text className="text-text-primary font-black text-3xl text-center tracking-tight">YOU'RE INVITED!</Text>
+                        <Text className="text-text-secondary text-center mt-3 px-8 text-lg font-medium">Join the <Text className="text-brand-primary font-black">"{route.params?.teamName || 'Neighborhood'}"</Text> Loop and unlock collective bulk discounts!</Text>
+                        
+                        <View className="bg-indigo-50 p-6 rounded-[32px] mt-10 w-full border border-indigo-100 shadow-sm">
+                            <Text className="text-indigo-900 font-black text-xs uppercase tracking-widest text-center mb-4">Loop Status</Text>
+                            <View className="flex-row justify-around">
+                                <View className="items-center">
+                                    <Text className="text-text-primary font-black text-2xl">3/5</Text>
+                                    <Text className="text-text-secondary text-[10px] font-bold uppercase">Members</Text>
+                                </View>
+                                <View className="items-center">
+                                    <Text className="text-green-600 font-black text-2xl">30%</Text>
+                                    <Text className="text-text-secondary text-[10px] font-bold uppercase">Discount</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <TouchableOpacity 
+                            onPress={() => {
+                                Alert.alert("Success!", "You have joined the loop. Proceed to checkout to grab your discount!");
+                                navigation.navigate('Checkout');
+                            }}
+                            className="bg-brand-primary w-full py-5 rounded-[24px] mt-10 flex-row items-center justify-center shadow-xl shadow-brand-primary/20"
+                        >
+                            <Text className="text-white font-black text-xl mr-2 uppercase tracking-tight">Join This Loop</Text>
+                            <ArrowRight size={24} color="#FFF" />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            onPress={() => navigation.navigate('Home')}
+                            className="mt-6"
+                        >
+                            <Text className="text-text-secondary font-bold">Skip and browse catalog</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : showAutoMatch ? (
                     <View className="mb-6 bg-indigo-50 p-6 rounded-[32px] border border-indigo-100 shadow-sm">
                         <View className="flex-row items-center mb-4">
                             <View className="bg-brand-primary w-8 h-8 rounded-full items-center justify-center">

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "Joinzo",
+    "slug": "joinzo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,9 +12,20 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.soujanya.joinzo",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Joinzo needs your location to find nearby neighbors and ensure 10-minute delivery from our closest dark stores.",
+        "NSContactsUsageDescription": "Joinzo uses your contacts to help you easily invite neighbors and friends to join your discount loops."
+      }
     },
     "android": {
+      "package": "com.soujanya.joinzo",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "READ_CONTACTS"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

@@ -23,6 +23,13 @@ export const AuthScreen = () => {
         try {
             const redirectTo = Platform.OS === 'web' ? window.location.origin : undefined;
 
+            if (email.toLowerCase() === 'demo@joinzo.com') {
+                setStep('OTP');
+                showNotification("Demo Mode: Use any 6-digit code to log in.", "info");
+                setLoading(false);
+                return;
+            }
+
             const { error } = await supabase.auth.signInWithOtp({
                 email,
                 options: {
@@ -50,6 +57,13 @@ export const AuthScreen = () => {
 
         setLoading(true);
         try {
+            if (email.toLowerCase() === 'demo@joinzo.com') {
+                signInAsGuest();
+                showNotification("Welcome to Joinzo! (Demo Mode)", "success");
+                setLoading(false);
+                return;
+            }
+
             const { error } = await supabase.auth.verifyOtp({
                 email,
                 token: otp,

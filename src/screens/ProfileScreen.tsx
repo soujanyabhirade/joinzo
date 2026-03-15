@@ -5,20 +5,22 @@ import { useCart } from '../lib/CartContext';
 import { useLocation } from '../lib/LocationContext';
 import { useNotification } from '../lib/NotificationContext';
 import { supabase } from '../lib/supabase';
-import { User, LogOut, Settings, CreditCard, HelpCircle, ChevronLeft, Package, RotateCw, Heart, MapPin, Trash2 } from 'lucide-react-native';
+import { useCoins } from '../lib/CoinsContext';
+import { User, LogOut, Settings, CreditCard, HelpCircle, ChevronLeft, Package, RotateCw, Heart, MapPin, Trash2, Zap, Store, Bike, Gift } from 'lucide-react-native';
 
 export const ProfileScreen = ({ navigation }: any) => {
     const { user } = useAuth();
     const { addToCart, favorites } = useCart();
     const { savedAddresses, deleteAddress } = useLocation();
     const { showNotification } = useNotification();
+    const { coinsBalance } = useCoins();
     const [orders, setOrders] = useState<any[]>([]);
 
     const fetchOrders = useCallback(async () => {
         try {
             const { data, error } = await supabase
                 .from('orders')
-                .select('*')
+                .select('*, order_items(*)')
                 .eq('user_id', user?.id)
                 .order('created_at', { ascending: false })
                 .limit(5);
@@ -27,29 +29,33 @@ export const ProfileScreen = ({ navigation }: any) => {
         } catch (err) {
             console.log("Could not fetch orders", err);
         }
-    }, [user]);
+    }, [user?.id]);
 
     useEffect(() => {
         if (user) {
             fetchOrders();
         }
-    }, [fetchOrders]);
+    }, [user, fetchOrders]);
 
     const handleReorder = async (orderId: string) => {
-        // Find the order to get its amount (or simulate items)
         const order = orders.find(o => o.id === orderId);
         
-        // Mock items for the reorder
-        const itemsToReorder = [
-            { id: 101, name: "Premium Avocados", price: 199, qty: 1 },
-            { id: 102, name: "Sourdough Bread", price: 85, qty: 1 }
-        ];
+        if (!order || !order.order_items || order.order_items.length === 0) {
+            showNotification("Could not find items to reorder.", "error");
+            return;
+        }
 
-        itemsToReorder.forEach(item => {
-            addToCart({ ...item, type: "Solo" });
+        order.order_items.forEach((item: any) => {
+            addToCart({ 
+                id: item.product_id, 
+                name: item.product_name, 
+                price: item.price_at_order, 
+                qty: item.quantity,
+                type: "Solo" 
+            });
         });
 
-        showNotification("All items from your previous order added!", "success");
+        showNotification(`${order.order_items.length} items added to cart!`, "success");
         navigation.navigate("Checkout");
     };
 
@@ -64,115 +70,131 @@ export const ProfileScreen = ({ navigation }: any) => {
 
     return (
         <View className="flex-1 bg-ui-background">
-            {/* Header */}
-            <View className="px-4 py-6 pt-12 flex-row items-center border-b border-gray-100 bg-ui-background">
+            <View className="px-6 pt-12 pb-6 flex-row items-center border-b border-gray-100 bg-white">
                 <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
                     <ChevronLeft size={28} color="#5A189A" />
                 </TouchableOpacity>
-                <Text className="text-text-primary font-black text-xl">MY PROFILE</Text>
+                <Text className="text-text-primary font-black text-2xl tracking-tighter uppercase">My Profile</Text>
             </View>
 
-            <ScrollView className="flex-1 p-6">
-                {/* User Info Card */}
-                <View className="bg-ui-surface rounded-3xl p-6 border border-gray-200 shadow-sm items-center mb-8">
-                    <View className="w-20 h-20 rounded-full bg-brand-primary/10 border-2 border-brand-primary items-center justify-center mb-4">
-                        <User size={40} color="#5A189A" />
+            <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+                {/* User Info Header */}
+                <View className="bg-white rounded-3xl p-6 border border-gray-100 mb-6 shadow-sm flex-row items-center">
+                    <View className="w-16 h-16 bg-brand-primary/10 rounded-full items-center justify-center border border-brand-primary/20">
+                        <User size={32} color="#5A189A" />
                     </View>
-                    <Text className="text-text-primary font-black text-xl">{user?.email}</Text>
-                    <View className="bg-brand-primary/10 px-3 py-1 rounded-full mt-2 border border-brand-primary/20">
-                        <Text className="text-brand-primary text-xs font-bold">Verified Member</Text>
+                    <View className="ml-4 flex-1">
+                        <Text className="text-text-primary font-black text-xl">{user?.email?.split('@')[0] || 'User'}</Text>
+                        <Text className="text-text-secondary text-sm font-medium">{user?.email}</Text>
                     </View>
                 </View>
 
-                {/* Order History */}
-                <Text className="text-text-primary font-black text-lg mb-4 ml-1">Order History</Text>
+                {/* Sell on Joinzo / Partner Dashboard */}
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('PartnerRegistration')}
+                    className="mb-3 rounded-3xl overflow-hidden shadow-lg"
+                    style={{ backgroundColor: '#2E1065' }}
+                    activeOpacity={0.85}
+                >
+                    <View className="p-6 flex-row items-center justify-between">
+                        <View className="flex-1 pr-4">
+                            <Text className="text-purple-300 font-black text-[10px] uppercase tracking-widest mb-1">🏪 Partner Program</Text>
+                            <Text className="text-white font-black text-2xl tracking-tighter">Sell on Joinzo</Text>
+                            <Text className="text-white/70 text-xs font-medium mt-2 leading-5">Register your shop & unlock the power of Loop group buying.</Text>
+                        </View>
+                        <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center border border-white/20">
+                            <Store size={24} color="#A78BFA" />
+                        </View>
+                    </View>
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('PartnerInventory')}
+                        className="bg-white/10 mx-4 mb-4 p-3 rounded-2xl border border-white/10 flex-row items-center justify-center"
+                    >
+                        <Package size={14} color="#A78BFA" />
+                        <Text className="text-purple-300 font-black text-xs ml-2 uppercase tracking-wider">Manage Inventory →</Text>
+                    </TouchableOpacity>
+                </TouchableOpacity>
 
-                {orders.length === 0 ? (
-                    <View className="bg-ui-surface rounded-3xl p-6 border border-gray-200 shadow-sm items-center mb-6">
-                        <Package size={32} color="#9CA3AF" />
-                        <Text className="text-text-secondary font-bold mt-3">No recent orders found.</Text>
+                {/* Deliver with Joinzo */}
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('RiderRegistration')}
+                    className="mb-6 rounded-3xl overflow-hidden shadow-lg"
+                    style={{ backgroundColor: '#064E3B' }}
+                    activeOpacity={0.85}
+                >
+                    <View className="p-6 flex-row items-center justify-between">
+                        <View className="flex-1 pr-4">
+                            <Text className="text-emerald-300 font-black text-[10px] uppercase tracking-widest mb-1">🛵 Fleet Network</Text>
+                            <Text className="text-white font-black text-2xl tracking-tighter">Deliver with Joinzo</Text>
+                            <Text className="text-white/70 text-xs font-medium mt-2 leading-5">Earn ₹50 per order + 100% of tips. Weekly payouts.</Text>
+                        </View>
+                        <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center border border-white/20">
+                            <Bike size={24} color="#6EE7B7" />
+                        </View>
                     </View>
-                ) : (
-                    <View className="bg-ui-surface rounded-3xl p-2 border border-gray-200 mb-6 shadow-sm">
-                        {orders.map((order, index) => {
-                            const date = new Date(order.created_at).toLocaleDateString();
-                            return (
-                                <View key={order.id || index} className={`p-4 flex-row items-center justify-between ${index !== orders.length - 1 ? 'border-b border-gray-200' : ''}`}>
-                                    <View>
-                                        <Text className="text-text-primary font-bold">Order #{order.id?.toString().slice(0, 6)}</Text>
-                                        <Text className="text-text-secondary text-xs mt-1">{date} • ₹{order.total_amount}</Text>
-                                    </View>
-                                    <TouchableOpacity
-                                        onPress={() => handleReorder(order.id)}
-                                        className="bg-brand-primary/10 px-3 py-1.5 rounded-lg border border-brand-primary/30 flex-row items-center"
-                                    >
-                                        <RotateCw size={12} color="#5A189A" />
-                                        <Text className="text-brand-primary text-xs font-bold ml-1">Reorder</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            );
-                        })}
-                    </View>
-                )}
+                </TouchableOpacity>
 
                 {/* Options List */}
-                <View className="bg-ui-surface rounded-3xl p-2 border border-gray-200 mb-6 shadow-sm">
-                    <TouchableOpacity onPress={() => navigation.navigate('PaymentMethods')} className="flex-row items-center p-4 border-b border-gray-200">
+                <View className="bg-white rounded-3xl p-2 border border-gray-100 mb-6 shadow-sm">
+                    <TouchableOpacity onPress={() => navigation.navigate('MyLoops')} className="flex-row items-center p-4 border-b border-gray-50">
+                        <Zap size={20} color="#5A189A" />
+                        <Text className="text-text-primary font-bold ml-4 flex-1">My Active Loops</Text>
+                        <View className="bg-orange-500 rounded-full w-2 h-2 mr-1" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate('Referral')} className="flex-row items-center p-4 border-b border-gray-50">
+                        <Gift size={20} color="#F59E0B" />
+                        <Text className="text-text-primary font-bold ml-4 flex-1">Joinzo Coins & Referrals</Text>
+                        <View className="bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full flex-row items-center">
+                            <Text className="text-amber-700 font-black text-xs">🪙 {coinsBalance}</Text>
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate('PaymentMethods')} className="flex-row items-center p-4 border-b border-gray-50">
                         <CreditCard size={20} color="#5A189A" />
                         <Text className="text-text-primary font-bold ml-4 flex-1">Payment Methods</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate('Settings')} className="flex-row items-center p-4 border-b border-gray-100">
+                    <TouchableOpacity onPress={() => navigation.navigate('Settings')} className="flex-row items-center p-4 border-b border-gray-50">
                         <Settings size={20} color="#5A189A" />
                         <Text className="text-text-primary font-bold ml-4 flex-1">App Settings</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('Support')} className="flex-row items-center p-4">
                         <HelpCircle size={20} color="#5A189A" />
-                        <Text className="text-text-primary font-bold ml-4 flex-1">Support & Help</Text>
+                        <Text className="text-text-primary font-bold ml-4 flex-1">Customer Support</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Favorites Section */}
-                <View className="mb-8">
-                    <View className="flex-row items-center justify-between mb-4">
-                        <Text className="text-text-primary font-black text-lg ml-1">My Favorites</Text>
-                        <Heart size={20} color="#EF4444" />
+                {/* Past Orders */}
+                <Text className="text-text-primary font-black text-lg mb-4 ml-1">Recent Orders</Text>
+                {orders.length === 0 ? (
+                    <View className="bg-white rounded-3xl p-8 border border-gray-100 items-center justify-center mb-6">
+                        <Package size={40} color="#D1D5DB" />
+                        <Text className="text-text-secondary font-bold mt-4">No orders yet</Text>
                     </View>
-                    {favorites.length === 0 ? (
-                        <View className="bg-ui-surface rounded-3xl p-6 border border-gray-200 shadow-sm items-center">
-                            <Text className="text-text-secondary font-bold">No items favorited yet.</Text>
-                        </View>
-                    ) : (
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            {favorites.map(favId => (
-                                <View key={favId} className="mr-3 bg-ui-surface p-4 rounded-3xl border border-gray-200 w-32 items-center">
-                                    <View className="w-16 h-16 bg-ui-background rounded-2xl mb-2 items-center justify-center">
-                                        <Text className="text-2xl">🍎</Text>
+                ) : (
+                    <View className="mb-6">
+                        {orders.map((order) => (
+                            <View key={order.id} className="bg-white rounded-3xl p-4 border border-gray-100 mb-3 shadow-sm">
+                                <View className="flex-row justify-between items-center mb-3">
+                                    <View>
+                                        <Text className="text-text-primary font-black">Order #{order.id.slice(0,8)}</Text>
+                                        <Text className="text-text-secondary text-[10px] uppercase font-bold">{new Date(order.created_at).toLocaleDateString()}</Text>
                                     </View>
-                                    <Text className="text-text-primary font-bold text-xs text-center" numberOfLines={1}>Product {favId}</Text>
+                                    <View className="bg-green-100 px-2 py-1 rounded-full">
+                                        <Text className="text-green-700 font-black text-[9px] uppercase tracking-widest">{order.status}</Text>
+                                    </View>
                                 </View>
-                            ))}
-                        </ScrollView>
-                    )}
-                </View>
-
-                {/* Saved Addresses Section */}
-                <View className="mb-8">
-                    <Text className="text-text-primary font-black text-lg mb-4 ml-1">Delivery Addresses</Text>
-                    {savedAddresses.map((addr) => (
-                        <View key={addr.id} className="bg-ui-surface rounded-3xl p-4 border border-gray-200 mb-3 shadow-sm flex-row items-center">
-                            <View className="w-10 h-10 bg-brand-primary/10 rounded-full items-center justify-center border border-brand-primary/20 mr-3">
-                                <MapPin size={20} color="#5A189A" />
+                                <View className="border-t border-gray-50 pt-3 flex-row justify-between items-center">
+                                    <Text className="text-text-primary font-black text-lg">₹{order.total_amount}</Text>
+                                    <TouchableOpacity 
+                                        onPress={() => handleReorder(order.id)}
+                                        className="bg-brand-primary/10 px-4 py-2 rounded-xl border border-brand-primary/20"
+                                    >
+                                        <Text className="text-brand-primary font-black text-xs uppercase tracking-wider">Reorder</Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                            <View className="flex-1">
-                                <Text className="text-text-primary font-bold">{addr.title}</Text>
-                                <Text className="text-text-secondary text-xs" numberOfLines={1}>{addr.address}</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => deleteAddress(addr.id)}>
-                                <Trash2 size={18} color="#9CA3AF" />
-                            </TouchableOpacity>
-                        </View>
-                    ))}
-                </View>
+                        ))}
+                    </View>
+                )}
 
                 {/* Sign Out Button */}
                 <TouchableOpacity
@@ -183,7 +205,7 @@ export const ProfileScreen = ({ navigation }: any) => {
                     <Text className="text-red-500 font-bold ml-2">SIGN OUT</Text>
                 </TouchableOpacity>
 
-                <Text className="text-center text-gray-500 text-xs mt-6">Joinzo v1.0.0</Text>
+                <Text className="text-center text-gray-500 text-xs mt-6 mb-10">Joinzo v1.0.0</Text>
             </ScrollView>
         </View>
     );
