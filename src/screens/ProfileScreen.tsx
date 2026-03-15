@@ -132,6 +132,13 @@ export const ProfileScreen = ({ navigation }: any) => {
                             <Bike size={24} color="#6EE7B7" />
                         </View>
                     </View>
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('RiderDashboard')}
+                        className="bg-white/10 mx-4 mb-4 p-3 rounded-2xl border border-white/10 flex-row items-center justify-center"
+                    >
+                        <Bike size={14} color="#6EE7B7" />
+                        <Text className="text-emerald-300 font-black text-xs ml-2 uppercase tracking-wider">Rider Dashboard →</Text>
+                    </TouchableOpacity>
                 </TouchableOpacity>
 
                 {/* Options List */}

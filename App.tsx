@@ -34,6 +34,8 @@ import { PartnerRegistrationScreen } from './src/screens/PartnerRegistrationScre
 import { RiderRegistrationScreen } from './src/screens/RiderRegistrationScreen';
 import { PartnerInventoryScreen } from './src/screens/PartnerInventoryScreen';
 import { ReferralScreen } from './src/screens/ReferralScreen';
+import { RiderDashboardScreen } from './src/screens/RiderDashboardScreen';
+import { RateOrderScreen } from './src/screens/RateOrderScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -83,6 +85,8 @@ const RootNavigator = () => {
                     <Stack.Screen name="RiderRegistration" component={RiderRegistrationScreen} />
                     <Stack.Screen name="PartnerInventory" component={PartnerInventoryScreen} />
                     <Stack.Screen name="Referral" component={ReferralScreen} />
+                    <Stack.Screen name="RiderDashboard" component={RiderDashboardScreen} />
+                    <Stack.Screen name="RateOrder" component={RateOrderScreen} />
 
                 </>
             ) : (

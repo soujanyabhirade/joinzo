@@ -3,7 +3,7 @@ import "../../global.css";
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StatusBar, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
-import { MapPin, Zap, ShoppingCart, User, Search, Gift, PackageOpen, Sparkles, Compass, Flame, Sun, Moon, MessageSquare, RotateCw } from 'lucide-react-native';
+import { MapPin, Zap, ShoppingCart, User, Search, Gift, PackageOpen, Sparkles, Compass, Flame, Sun, Moon, MessageSquare, RotateCw, ArrowDownUp } from 'lucide-react-native';
 import { TextInput } from 'react-native';
 
 // Components
@@ -55,6 +55,7 @@ export default function HomeScreen({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [showSeeder, setShowSeeder] = useState(false);
+  const [sortMode, setSortMode] = useState<'default' | 'low' | 'high' | 'popular'>('default');
   const isProduction = false; // Toggle this to true before App Store submission
   const { startSimulation } = useHapticArrival();
   const { cartItems, addToCart } = useCart();
@@ -78,7 +79,8 @@ export default function HomeScreen({ navigation }: any) {
       headerIcon: isNight ? "#FFFFFF" : "#5A189A",
   };
 
-  const categories = useMemo(() => ["All", "Fresh", "Snacks", "Drinks", "Electronics", "Groceries", "Essentials"], []);
+  const CATEGORY_EMOJIS: Record<string, string> = { All: '🏠', Fresh: '🥬', Snacks: '🍿', Drinks: '🥤', Electronics: '📱', Groceries: '🛒', Essentials: '🧴', Dairy: '🥛' };
+  const categories = useMemo(() => ["All", "Fresh", "Snacks", "Drinks", "Dairy", "Groceries", "Essentials"], []);
 
   const fetchProducts = useCallback(async (category = activeCategory, query = searchQuery) => {
     setLoading(true);
@@ -376,11 +378,50 @@ export default function HomeScreen({ navigation }: any) {
                                 ? (isNight ? 'bg-indigo-600 border-indigo-600' : 'bg-brand-primary border-brand-primary')
                                 : `${theme.surface} ${theme.border}`
                         }`}>
-                        <Text className={`font-bold text-sm ${isActive ? 'text-white' : theme.textPrimary}`}>{cat}</Text>
+                        <Text className={`font-bold text-sm ${isActive ? 'text-white' : theme.textPrimary}`}>{CATEGORY_EMOJIS[cat] || '📦'} {cat}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </ScrollView>
+              </View>
+
+              {/* Sort Toggle Bar */}
+              <View className="px-4 mt-4 flex-row items-center justify-between">
+                <Text className={`${theme.textSecondary} font-bold text-xs`}>
+                  {filteredProducts.length} products{searchQuery ? ` for "${searchQuery}"` : ''}
+                </Text>
+                <View className="flex-row items-center">
+                  <TouchableOpacity 
+                    onPress={() => setSortMode('default')}
+                    className={`px-3 py-1.5 rounded-full mr-2 ${sortMode === 'default' ? 'bg-brand-primary' : `${theme.surface} border ${theme.border}`}`}
+                  >
+                    <Text className={`text-xs font-bold ${sortMode === 'default' ? 'text-white' : theme.textPrimary}`}>Relevant</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setSortMode('low');
+                      setFilteredProducts(prev => [...prev].sort((a, b) => (a.price_solo || a.price || 0) - (b.price_solo || b.price || 0)));
+                    }}
+                    className={`px-3 py-1.5 rounded-full mr-2 ${sortMode === 'low' ? 'bg-brand-primary' : `${theme.surface} border ${theme.border}`}`}
+                  >
+                    <Text className={`text-xs font-bold ${sortMode === 'low' ? 'text-white' : theme.textPrimary}`}>₹ Low</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setSortMode('high');
+                      setFilteredProducts(prev => [...prev].sort((a, b) => (b.price_solo || b.price || 0) - (a.price_solo || a.price || 0)));
+                    }}
+                    className={`px-3 py-1.5 rounded-full mr-2 ${sortMode === 'high' ? 'bg-brand-primary' : `${theme.surface} border ${theme.border}`}`}
+                  >
+                    <Text className={`text-xs font-bold ${sortMode === 'high' ? 'text-white' : theme.textPrimary}`}>₹ High</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => setSortMode('popular')}
+                    className={`px-3 py-1.5 rounded-full ${sortMode === 'popular' ? 'bg-brand-primary' : `${theme.surface} border ${theme.border}`}`}
+                  >
+                    <Text className={`text-xs font-bold ${sortMode === 'popular' ? 'text-white' : theme.textPrimary}`}>🔥</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* Product Grid */}
