@@ -28,6 +28,12 @@ export const CheckoutScreen = ({ navigation }: any) => {
     const [giftMessage, setGiftMessage] = useState('');
     const [giftCard, setGiftCard] = useState<'birthday' | 'getwell' | 'congrats' | null>(null);
 
+    // Promo Code State
+    const [promoCode, setPromoCode] = useState('');
+    const [promoApplied, setPromoApplied] = useState(false);
+    const [promoDiscount, setPromoDiscount] = useState(0);
+    const [promoError, setPromoError] = useState('');
+
     const { cartItems, getCartTotal, clearCart } = useCart();
     const { isServicable, savedAddresses } = useLocation();
     const { user } = useAuth();
@@ -48,7 +54,45 @@ export const CheckoutScreen = ({ navigation }: any) => {
     const bagReturnCredit = bagsToReturn * 5;
 
     // Final Math
-    const finalTotal = Math.max(0, total - batchDiscount - neighborhoodDiscount - bagReturnCredit);
+    const finalTotal = Math.max(0, total - batchDiscount - neighborhoodDiscount - bagReturnCredit - promoDiscount);
+
+    // Promo Code Validation
+    const PROMO_CODES: Record<string, { discount: number; type: 'flat' | 'percent'; label: string }> = {
+        'JOINZO50': { discount: 50, type: 'flat', label: '₹50 OFF' },
+        'FIRST100': { discount: 100, type: 'flat', label: '₹100 OFF' },
+        'LOOP20': { discount: 20, type: 'percent', label: '20% OFF' },
+        'WELCOME25': { discount: 25, type: 'flat', label: '₹25 OFF' },
+        'MEGA200': { discount: 200, type: 'flat', label: '₹200 OFF (orders above ₹999)' },
+    };
+
+    const applyPromoCode = () => {
+        const code = promoCode.trim().toUpperCase();
+        const promo = PROMO_CODES[code];
+        if (!promo) {
+            setPromoError('Invalid promo code');
+            setPromoDiscount(0);
+            setPromoApplied(false);
+            return;
+        }
+        if (code === 'MEGA200' && total < 999) {
+            setPromoError('Minimum order ₹999 required for this code');
+            setPromoDiscount(0);
+            setPromoApplied(false);
+            return;
+        }
+        const discount = promo.type === 'percent' ? Math.floor(total * promo.discount / 100) : promo.discount;
+        setPromoDiscount(discount);
+        setPromoApplied(true);
+        setPromoError('');
+        showNotification(`${promo.label} applied! Saving ₹${discount}`, 'success');
+    };
+
+    const removePromo = () => {
+        setPromoCode('');
+        setPromoDiscount(0);
+        setPromoApplied(false);
+        setPromoError('');
+    };
 
     const handlePayment = async (methodId: string) => {
         if (isProcessing) return; // Debounce mechanism
@@ -279,6 +323,49 @@ export const CheckoutScreen = ({ navigation }: any) => {
                             </TouchableOpacity>
                         </View>
                     </View>
+                </View>
+
+                {/* Promo Code Section */}
+                <View className="bg-ui-surface border border-gray-200 rounded-3xl p-5 mb-6 shadow-sm">
+                    <View className="flex-row items-center mb-3">
+                        <Gift size={18} color="#F59E0B" />
+                        <Text className="text-text-primary font-black ml-2 text-xs uppercase tracking-widest">Promo Code</Text>
+                    </View>
+                    {promoApplied ? (
+                        <View className="flex-row items-center justify-between bg-green-50 border border-green-200 p-4 rounded-2xl">
+                            <View className="flex-row items-center">
+                                <CheckCircle size={16} color="#059669" />
+                                <Text className="text-green-700 font-black text-sm ml-2">{promoCode.toUpperCase()}</Text>
+                                <Text className="text-green-600 font-bold text-xs ml-2">-₹{promoDiscount}</Text>
+                            </View>
+                            <TouchableOpacity onPress={removePromo} className="bg-red-500/10 px-3 py-1.5 rounded-xl">
+                                <Text className="text-red-500 font-black text-[10px] uppercase">Remove</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <>
+                            <View className="flex-row items-center">
+                                <TextInput
+                                    placeholder="Enter promo code"
+                                    placeholderTextColor="#9CA3AF"
+                                    className="flex-1 bg-ui-background border border-gray-200 rounded-2xl px-4 py-3.5 text-text-primary font-bold uppercase"
+                                    value={promoCode}
+                                    onChangeText={(t) => { setPromoCode(t); setPromoError(''); }}
+                                    autoCapitalize="characters"
+                                />
+                                <TouchableOpacity
+                                    onPress={applyPromoCode}
+                                    className="ml-2 bg-brand-primary px-5 py-3.5 rounded-2xl"
+                                >
+                                    <Text className="text-white font-black text-xs uppercase">Apply</Text>
+                                </TouchableOpacity>
+                            </View>
+                            {promoError !== '' && (
+                                <Text className="text-red-500 font-bold text-xs mt-2 ml-1">{promoError}</Text>
+                            )}
+                            <Text className="text-text-secondary text-[10px] font-medium mt-2 ml-1">Try: JOINZO50, FIRST100, LOOP20</Text>
+                        </>
+                    )}
                 </View>
 
                 {/* Cart Summary */}
