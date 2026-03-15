@@ -1,4 +1,5 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type CartItem = {
     id: number;
@@ -18,10 +19,44 @@ type CartContextType = {
     toggleFavorite: (id: number) => void;
 };
 
+const CART_STORAGE_KEY = '@joinzo_cart';
+const FAV_STORAGE_KEY = '@joinzo_favorites';
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
+    const [favorites, setFavorites] = useState<number[]>([]);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Load data from storage on mount
+    useEffect(() => {
+        const loadPersistedData = async () => {
+            try {
+                const savedCart = await AsyncStorage.getItem(CART_STORAGE_KEY);
+                const savedFavs = await AsyncStorage.getItem(FAV_STORAGE_KEY);
+                
+                if (savedCart) setCartItems(JSON.parse(savedCart));
+                if (savedFavs) setFavorites(JSON.parse(savedFavs));
+            } catch (e) {
+                console.error('Failed to load cart/favorites', e);
+            } finally {
+                setIsLoaded(true);
+            }
+        };
+        loadPersistedData();
+    }, []);
+
+    // Save data whenever it changes
+    useEffect(() => {
+        if (!isLoaded) return;
+        AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    }, [cartItems, isLoaded]);
+
+    useEffect(() => {
+        if (!isLoaded) return;
+        AsyncStorage.setItem(FAV_STORAGE_KEY, JSON.stringify(favorites));
+    }, [favorites, isLoaded]);
 
     const addToCart = (newItem: CartItem) => {
         setCartItems(prev => {
@@ -46,8 +81,6 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const clearCart = () => setCartItems([]);
-
-    const [favorites, setFavorites] = useState<number[]>([]);
 
     const toggleFavorite = (id: number) => {
         setFavorites(prev =>

@@ -47,26 +47,40 @@ export const ConnectContactsScreen = ({ route, navigation }: any) => {
         })();
     }, []);
 
-    const handleInvite = async (contact: Contacts.Contact) => {
-        const teamLink = `https://joinzo.app/loop/${Math.random().toString(36).substring(7)}`;
-        const message = `Hey ${contact.firstName}! I'm starting a shopping loop for "${teamName}" on Joinzo. Join me to unlock collective discounts and save on delivery! \n\nAccept here: ${teamLink}`;
+    const handleInvite = async (contact?: Contacts.Contact) => {
+        // Generating a query-param based link for superior GitHub Pages compatibility
+        const baseUrl = 'https://soujanyabhirade.github.io/joinzo';
+        const teamId = route.params?.teamId || `loop-${Math.random().toString(36).substring(7)}`;
+        const teamLink = `${baseUrl}/?teamId=${teamId}`;
+        
+        const message = contact 
+            ? `Hey ${contact.firstName}! Join my "${teamName}" Loop on Joinzo and unlock 30% discount! 🚀 We only need 2 more to unlock! \n\nDirect Join Link: ${teamLink}`
+            : `Join my "${teamName}" Loop on Joinzo and unlock 30% discount! 🚀 We only need 2 more to unlock! \n\nDirect Join Link: ${teamLink}`;
 
         try {
-            const result = await Share.share({
-                message: message,
-                url: teamLink, // iOS support
-                title: `Join my ${teamName} Loop!`
-            });
+            if (Platform.OS === 'web') {
+                await navigator.clipboard.writeText(message);
+                showNotification("Invite link copied to clipboard!", "success");
+                if (contact && (contact as any).id) {
+                    setInvitedIds(prev => new Set([...prev, (contact as any).id]));
+                }
+            } else {
+                const result = await Share.share({
+                    message: message,
+                    url: teamLink, // iOS support
+                    title: `Join my ${teamName} Loop!`
+                });
 
-            if (result.action === Share.sharedAction) {
-                const newSet = new Set(invitedIds);
-                const contactId = (contact as any).id;
-                if (contactId) newSet.add(contactId);
-                setInvitedIds(newSet);
-                showNotification(`Invite Shared with ${contact.firstName}!`, "success");
+                if (result.action === Share.sharedAction) {
+                    if (contact && (contact as any).id) {
+                        setInvitedIds(prev => new Set([...prev, (contact as any).id]));
+                    }
+                    showNotification("Invite Shared Successfully!", "success");
+                }
             }
         } catch (error: any) {
-            Alert.alert("Error Sharing", error.message);
+            console.error("Sharing Error:", error);
+            showNotification("Could not share/copy link. Try manually!", "error");
         }
     };
 
@@ -116,9 +130,25 @@ export const ConnectContactsScreen = ({ route, navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
+            {/* Quick Share Link Section */}
+            <View className="p-4">
+                <TouchableOpacity 
+                    onPress={() => handleInvite()}
+                    className="bg-indigo-600 p-5 rounded-[32px] flex-row items-center justify-between shadow-lg shadow-indigo-200"
+                >
+                    <View>
+                        <Text className="text-white font-black text-lg tracking-tight">Copy Loop Link</Text>
+                        <Text className="text-indigo-100 text-[10px] font-bold uppercase tracking-widest">Share on WhatsApp or iMessage</Text>
+                    </View>
+                    <View className="bg-white/20 p-2 rounded-full">
+                        <UserPlus size={20} color="#FFF" />
+                    </View>
+                </TouchableOpacity>
+            </View>
+
             {loading ? (
                 <View className="flex-1 items-center justify-center">
-                    <Text className="text-brand-primary font-bold">Syncing contacts...</Text>
+                    <Text className="text-brand-primary font-bold animate-pulse">Syncing contacts...</Text>
                 </View>
             ) : (
                 <FlatList
@@ -126,6 +156,7 @@ export const ConnectContactsScreen = ({ route, navigation }: any) => {
                     keyExtractor={(c) => (c as any).id || Math.random().toString()}
                     renderItem={renderContact}
                     className="p-4"
+                    ListHeaderComponent={<Text className="text-text-secondary font-black text-[10px] uppercase tracking-widest ml-1 mb-4">Or pick from neighbors</Text>}
                     ListEmptyComponent={
                         <Text className="text-gray-400 text-center mt-10">No contacts found with phone numbers.</Text>
                     }

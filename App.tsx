@@ -3,13 +3,16 @@ import "./global.css";
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StatusBar } from 'react-native';
+import * as Linking from 'expo-linking';
+import { StatusBar, Platform } from 'react-native';
 
 // Providers
 import { AuthProvider, useAuth } from './src/lib/AuthContext';
 import { CartProvider } from './src/lib/CartContext';
 import { LocationProvider } from './src/lib/LocationContext';
 import { NotificationProvider } from './src/lib/NotificationContext';
+import { ThemeProvider } from './src/lib/ThemeContext';
+import { CoinsProvider } from './src/lib/CoinsContext';
 
 // Screens
 import { AuthScreen } from './src/screens/AuthScreen';
@@ -26,9 +29,29 @@ import { NeighborhoodPulseScreen } from './src/screens/NeighborhoodPulseScreen';
 import { SupportScreen } from './src/screens/SupportScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { PaymentMethodsScreen } from './src/screens/PaymentMethodsScreen';
+import { MyLoopsScreen } from './src/screens/MyLoopsScreen';
+import { PartnerRegistrationScreen } from './src/screens/PartnerRegistrationScreen';
+import { RiderRegistrationScreen } from './src/screens/RiderRegistrationScreen';
+import { PartnerInventoryScreen } from './src/screens/PartnerInventoryScreen';
+import { ReferralScreen } from './src/screens/ReferralScreen';
 
 
 const Stack = createNativeStackNavigator();
+
+const prefix = Linking.createURL('/');
+
+const linking = {
+    prefixes: [prefix, 'https://soujanyabhirade.github.io/joinzo'],
+    config: {
+        screens: {
+            Home: '',
+            CreateTeam: 'loop/:teamId',
+            ConnectContacts: 'invite',
+            Checkout: 'checkout',
+            Profile: 'profile',
+        },
+    },
+};
 
 const RootNavigator = () => {
     const { session, isLoading } = useAuth();
@@ -55,6 +78,11 @@ const RootNavigator = () => {
                     <Stack.Screen name="Support" component={SupportScreen} />
                     <Stack.Screen name="Settings" component={SettingsScreen} />
                     <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+                    <Stack.Screen name="MyLoops" component={MyLoopsScreen} />
+                    <Stack.Screen name="PartnerRegistration" component={PartnerRegistrationScreen} />
+                    <Stack.Screen name="RiderRegistration" component={RiderRegistrationScreen} />
+                    <Stack.Screen name="PartnerInventory" component={PartnerInventoryScreen} />
+                    <Stack.Screen name="Referral" component={ReferralScreen} />
 
                 </>
             ) : (
@@ -68,16 +96,20 @@ const RootNavigator = () => {
 export default function App() {
     return (
         <AuthProvider>
-            <LocationProvider>
-                <CartProvider>
-                    <NotificationProvider>
-                        <StatusBar barStyle="light-content" />
-                        <NavigationContainer>
-                            <RootNavigator />
-                        </NavigationContainer>
-                    </NotificationProvider>
-                </CartProvider>
-            </LocationProvider>
+            <ThemeProvider>
+                <LocationProvider>
+                    <CartProvider>
+                        <CoinsProvider>
+                            <NotificationProvider>
+                                <StatusBar barStyle="light-content" />
+                                <NavigationContainer linking={linking}>
+                                    <RootNavigator />
+                                </NavigationContainer>
+                            </NotificationProvider>
+                        </CoinsProvider>
+                    </CartProvider>
+                </LocationProvider>
+            </ThemeProvider>
         </AuthProvider>
     );
 }

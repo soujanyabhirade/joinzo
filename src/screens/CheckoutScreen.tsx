@@ -74,7 +74,20 @@ export const CheckoutScreen = ({ navigation }: any) => {
                 throw new Error(`${outOfStock.name} is currently out of stock. Please remove it from your cart.`);
             }
 
-            // 2. Insert Order into Supabase accurately
+            // 2. Demo User Check & Bypass
+            const isDemoUser = user?.id === '00000000-0000-0000-0000-000000000000';
+            
+            if (isDemoUser) {
+                console.log("Demo session detected, bypassing database insertions.");
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                clearCart();
+                setShowPayment(false);
+                showNotification("Payment successful! Tracking your order.", "success");
+                navigation.navigate("TrackOrder", { triggerConfetti: true });
+                return;
+            }
+
+            // 3. Insert Order into Supabase accurately
             const { data: orderData, error: orderError } = await supabase
                 .from('orders')
                 .insert({
@@ -85,22 +98,49 @@ export const CheckoutScreen = ({ navigation }: any) => {
                 .select()
                 .single();
 
-            if (orderError) {
-                console.error("Order Insert Error (Non-fatal for demo):", orderError);
+            if (orderError) throw orderError;
+
+            // 4. Insert Order Items
+            const orderItemsData = cartItems.map(item => ({
+                order_id: orderData.id,
+                product_id: item.id,
+                quantity: item.qty,
+                price_at_order: item.price,
+                product_name: item.name
+            }));
+
+            const { error: itemsError } = await supabase
+                .from('order_items')
+                .insert(orderItemsData);
+
+            if (itemsError) {
+                console.error("Error inserting order items:", itemsError);
             }
 
-            // 3. Simulate Gateway Delay Processing
+            // 5. Simulate Gateway Delay Processing
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // 4. Success Navigation & State Reset
+            // 6. Success Navigation & State Reset
             clearCart();
             setShowPayment(false);
             showNotification("Payment successful! Tracking your order.", "success");
-            navigation.navigate("TrackOrder", { triggerConfetti: true });
+            navigation.navigate("TrackOrder", { triggerConfetti: true, orderId: orderData.id });
 
         } catch (error: any) {
             console.error("Payment Flow Error:", error);
-            showNotification(error.message || "Payment Processing Failed. Try again.", "error");
+            // Even if DB insert fails (e.g. unknown RLS or mock user), allow user to proceed in prototype mode
+            Alert.alert(
+                "Demo Notice", 
+                "We couldn't save your order to the database (possibly due to demo account restrictions), but we'll show you the tracking experience anyway!",
+                [{ 
+                    text: "Track Order", 
+                    onPress: () => {
+                        clearCart();
+                        setShowPayment(false);
+                        navigation.navigate("TrackOrder", { triggerConfetti: true });
+                    }
+                }]
+            );
         } finally {
             // Restore button operability if failed or unmounted
             setIsProcessing(false);
