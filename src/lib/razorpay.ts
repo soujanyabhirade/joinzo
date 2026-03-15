@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { CONFIG } from './config';
 
 // Razorpay Configuration
 // Replace these with your actual Razorpay credentials
@@ -56,6 +57,15 @@ export const openRazorpayCheckout = async (options: RazorpayOptions) => {
         return;
     }
 
+    // Check if key is configured
+    if (!isRazorpayConfigured()) {
+        console.warn('Razorpay Key not configured — using demo mode simulation');
+        // We can't use showNotification here as it's a hook, 
+        // but the failure/success callbacks will handle the UI
+        simulateDemoPayment(options);
+        return;
+    }
+
     const loaded = await loadRazorpayScript();
 
     if (!loaded) {
@@ -72,7 +82,7 @@ export const openRazorpayCheckout = async (options: RazorpayOptions) => {
             currency: options.currency || 'INR',
             name: options.name || 'Joinzo',
             description: options.description || 'Grocery Order',
-            image: 'https://soujanyabhirade.github.io/joinzo/favicon.ico',
+            image: `${CONFIG.APP_BASE_URL}/favicon.ico`,
             order_id: options.orderId,
             prefill: {
                 email: options.customerEmail || '',

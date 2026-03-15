@@ -3,6 +3,8 @@
     "name": "Joinzo",
     "slug": "joinzo",
     "version": "1.0.0",
+    "owner": "soujanya",
+    "description": "Premium 10-minute neighborhood group-buying platform.",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

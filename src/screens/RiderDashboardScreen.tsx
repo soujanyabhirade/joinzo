@@ -16,6 +16,7 @@ interface OrderItem {
     created_at: string;
     customer_name?: string;
     items_count?: number;
+    building_id?: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -37,6 +38,8 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
     const [refreshing, setRefreshing] = useState(false);
     const [isOnline, setIsOnline] = useState(true);
     const [tab, setTab] = useState<'available' | 'my'>('available');
+    const [incomingOrder, setIncomingOrder] = useState<OrderItem | null>(null);
+    const [timer, setTimer] = useState(30);
 
     // Earnings stats
     const [todayEarnings, setTodayEarnings] = useState(0);
@@ -106,6 +109,17 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
 
         return () => { supabase.removeChannel(channel); };
     }, [fetchOrders]);
+
+    useEffect(() => {
+        let interval: any;
+        if (incomingOrder && timer > 0) {
+            interval = setInterval(() => setTimer(t => t - 1), 1000);
+        } else if (timer === 0) {
+            setIncomingOrder(null);
+            setTimer(30);
+        }
+        return () => clearInterval(interval);
+    }, [incomingOrder, timer]);
 
     const handleAcceptOrder = async (orderId: string) => {
         try {
@@ -186,6 +200,45 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
+            {/* NEW INCOMING ORDER MODAL (RIDER EXPERIENCE) */}
+            {incomingOrder && (
+                <View className="absolute top-0 left-0 right-0 bottom-0 bg-black/80 z-50 items-center justify-center p-8">
+                    <View className="bg-white w-full rounded-[40px] p-8 items-center shadow-2xl">
+                        <View className="w-20 h-20 bg-emerald-100 rounded-full items-center justify-center mb-6">
+                            <Zap size={44} color="#10B981" />
+                        </View>
+                        <Text className="text-text-primary font-black text-3xl tracking-tighter italic">NEW ORDER!</Text>
+                        <Text className="text-brand-primary font-bold text-lg mt-1 italic uppercase tracking-widest">₹35 + Tips</Text>
+                        
+                        <View className="w-full bg-gray-50 rounded-3xl p-6 mt-8 mb-8 border border-gray-100">
+                            <View className="flex-row items-center mb-4">
+                                <MapPin size={18} color="#5A189A" />
+                                <Text className="text-text-primary font-bold ml-2 flex-1" numberOfLines={1}>{incomingOrder.delivery_address}</Text>
+                            </View>
+                            <View className="flex-row items-center">
+                                <Package size={18} color="#5A189A" />
+                                <Text className="text-text-primary font-bold ml-2">{incomingOrder.items_count} items • Clustered</Text>
+                            </View>
+                        </View>
+
+                        <View className="flex-row w-full gap-4">
+                            <TouchableOpacity 
+                                onPress={() => { setIncomingOrder(null); setTimer(30); }}
+                                className="flex-1 py-5 rounded-[24px] bg-gray-100 items-center"
+                            >
+                                <Text className="text-gray-500 font-black text-xs uppercase tracking-widest">Reject</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                onPress={() => { handleAcceptOrder(incomingOrder.id); setIncomingOrder(null); setTimer(30); }}
+                                className="flex-[2] py-5 rounded-[24px] bg-emerald-500 items-center shadow-lg shadow-emerald-500/40"
+                            >
+                                <Text className="text-white font-black text-lg uppercase italic tracking-wider">Accept ({timer}s)</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            )}
+
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#5A189A" />}>
 
@@ -233,12 +286,14 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
                 ) : tab === 'available' ? (
                     <>
                         {availableOrders.length === 0 ? (
-                            <View className="mx-4 mt-6 items-center py-12 rounded-3xl" style={{ backgroundColor: surfaceBg, borderColor, borderWidth: 1 }}>
-                                <Text style={{ fontSize: 48 }}>🛵</Text>
-                                <Text style={{ color: textColor }} className="font-black text-lg mt-4">No orders right now</Text>
-                                <Text style={{ color: subTextColor }} className="text-sm font-medium mt-1 text-center px-8">New orders will appear here in real-time. Stay online!</Text>
-                                <TouchableOpacity onPress={generateDemoOrders} className="mt-4 bg-brand-primary/10 px-6 py-3 rounded-2xl border border-brand-primary/20">
-                                    <Text className="text-brand-primary font-black text-xs uppercase tracking-wider">Load Demo Orders</Text>
+                            <View className="mx-4 mt-6 items-center py-16 rounded-[40px]" style={{ backgroundColor: surfaceBg, borderColor, borderWidth: 1 }}>
+                                <View className="w-20 h-20 bg-emerald-500/10 rounded-full items-center justify-center mb-6">
+                                    <Bike size={44} color="#059669" />
+                                </View>
+                                <Text style={{ color: textColor }} className="font-black text-2xl tracking-tighter">Quiet on the road</Text>
+                                <Text style={{ color: subTextColor }} className="text-sm font-bold mt-2 text-center px-12 leading-5 italic">New orders will pop up here in real-time. Stay alert for the next delivery!</Text>
+                                <TouchableOpacity onPress={generateDemoOrders} className="mt-8 bg-emerald-600 px-10 py-4 rounded-3xl shadow-lg shadow-emerald-500/20">
+                                    <Text className="text-white font-black text-xs uppercase tracking-widest">Load Demo Orders</Text>
                                 </TouchableOpacity>
                             </View>
                         ) : (
@@ -291,10 +346,12 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
                 ) : (
                     <>
                         {myDeliveries.length === 0 ? (
-                            <View className="mx-4 mt-6 items-center py-12 rounded-3xl" style={{ backgroundColor: surfaceBg, borderColor, borderWidth: 1 }}>
-                                <Text style={{ fontSize: 48 }}>📦</Text>
-                                <Text style={{ color: textColor }} className="font-black text-lg mt-4">No deliveries yet</Text>
-                                <Text style={{ color: subTextColor }} className="text-sm font-medium mt-1">Accept your first order to get started!</Text>
+                            <View className="mx-4 mt-6 items-center py-16 rounded-[40px]" style={{ backgroundColor: surfaceBg, borderColor, borderWidth: 1 }}>
+                                <View className="w-20 h-20 bg-emerald-500/10 rounded-full items-center justify-center mb-6">
+                                    <Package size={44} color="#059669" />
+                                </View>
+                                <Text style={{ color: textColor }} className="font-black text-2xl tracking-tighter">No Deliveries Yet</Text>
+                                <Text style={{ color: subTextColor }} className="text-sm font-bold mt-2 text-center px-12 leading-5">Accept an order from the 'Available' tab to start earning.</Text>
                             </View>
                         ) : (
                             <View className="mx-4 mt-4">
@@ -302,17 +359,38 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
                                     <View key={order.id} className="mb-3 rounded-[24px] overflow-hidden" style={{ backgroundColor: surfaceBg, borderColor, borderWidth: 1 }}>
                                         <View className="p-5">
                                             <View className="flex-row justify-between items-center mb-2">
-                                                <Text style={{ color: textColor }} className="font-black">Order #{order.id.slice(0, 8)}</Text>
+                                                <Text style={{ color: textColor }} className="font-black text-lg">Batch: {order.building_id || 'Main Gate'}</Text>
                                                 <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[order.status] + '20' }}>
                                                     <Text style={{ color: STATUS_COLORS[order.status] }} className="font-black text-[9px] uppercase tracking-widest">{order.status}</Text>
                                                 </View>
                                             </View>
+                                            
+                                            {/* Clustered Mini-orders */}
+                                            <View className="bg-gray-50 dark:bg-white/5 rounded-2xl p-4 mb-4 border border-gray-100">
+                                                <View className="flex-row items-center mb-2">
+                                                    <Package size={14} color="#5A189A" />
+                                                    <Text className="text-brand-primary font-black text-[10px] uppercase ml-2">3 Orders for this Gate</Text>
+                                                </View>
+                                                <Text style={{ color: textColor }} className="text-xs font-bold">1. Flat 402 • Priya S.</Text>
+                                                <Text style={{ color: textColor }} className="text-xs font-bold mt-1">2. Flat 105 • Rahul M.</Text>
+                                                <Text style={{ color: textColor }} className="text-xs font-bold mt-1">3. Penthouse 2 • Amit K.</Text>
+                                            </View>
+
                                             <View className="flex-row items-center mb-3">
                                                 <MapPin size={12} color={subTextColor} />
                                                 <Text style={{ color: subTextColor }} className="text-xs font-medium ml-1 flex-1" numberOfLines={1}>{order.delivery_address || 'Address not available'}</Text>
                                             </View>
+                                            
+                                            <TouchableOpacity 
+                                                className="w-full bg-brand-primary py-4 rounded-2xl flex-row items-center justify-center mb-3"
+                                                onPress={() => showNotification("Launching Maps for Cluster...", "info")}
+                                            >
+                                                <Navigation size={18} color="#FFF" />
+                                                <Text className="text-white font-black text-xs uppercase tracking-widest ml-2">Navigate to Cluster</Text>
+                                            </TouchableOpacity>
+
                                             <View className="flex-row justify-between items-center">
-                                                <Text style={{ color: textColor }} className="font-black text-lg">₹{order.total_amount}</Text>
+                                                <Text style={{ color: textColor }} className="font-black text-lg">Total: ₹{order.total_amount}</Text>
                                                 {order.status === 'out_for_delivery' && (
                                                     <TouchableOpacity
                                                         onPress={() => handleCompleteDelivery(order.id)}
@@ -320,13 +398,8 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
                                                         style={{ backgroundColor: '#059669' }}
                                                     >
                                                         <CheckCircle size={14} color="#FFF" />
-                                                        <Text className="text-white font-black text-xs ml-1.5 uppercase">Mark Delivered</Text>
+                                                        <Text className="text-white font-black text-xs ml-1.5 uppercase">Verify OTP & Deliver</Text>
                                                     </TouchableOpacity>
-                                                )}
-                                                {order.status === 'delivered' && (
-                                                    <View className="flex-row items-center">
-                                                        <Text className="text-green-600 font-black text-xs">₹35 earned ✓</Text>
-                                                    </View>
                                                 )}
                                             </View>
                                         </View>

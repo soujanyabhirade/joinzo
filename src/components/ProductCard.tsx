@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Image, TouchableOpacity, Alert, Platform, Linking, Animated } from 'react-native';
 import { Plus, Users, Zap, Share2, Heart, ShoppingCart } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useCart } from '../lib/CartContext';
@@ -32,6 +32,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
     const currentMembers = (id % 4) + 1; // 1 to 4 members
     const progressPercent = (currentMembers / requiredMembers) * 100;
     const membersNeeded = requiredMembers - currentMembers;
+
+    const progressAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        if (isLoop) {
+            Animated.spring(progressAnim, {
+                toValue: progressPercent,
+                useNativeDriver: false,
+                friction: 8,
+                tension: 40
+            }).start();
+        }
+    }, [isLoop]);
 
     const [showDetail, setShowDetail] = useState(false);
 
@@ -121,7 +134,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
                             <Text className="text-brand-primary text-[10px] font-black">{membersNeeded} More Needed</Text>
                         </View>
                         <View className="h-1.5 w-full bg-brand-primary/10 rounded-full overflow-hidden">
-                            <View className="h-full bg-brand-primary rounded-full" style={{ width: `${progressPercent}%` }} />
+                            <Animated.View 
+                                className="h-full bg-brand-primary rounded-full" 
+                                style={{ 
+                                    width: progressAnim.interpolate({
+                                        inputRange: [0, 100],
+                                        outputRange: ['0%', '100%']
+                                    }) 
+                                }} 
+                            />
                         </View>
                     </View>
                 )}

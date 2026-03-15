@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
-import { X, Heart, Home, Play, ShoppingCart } from 'lucide-react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Image, Dimensions, ActivityIndicator, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { X, Heart, Home, Play, ShoppingCart, ShoppingBag } from 'lucide-react-native';
 import { useCart } from '../lib/CartContext';
 import { useNotification } from '../lib/NotificationContext';
 
@@ -11,23 +12,53 @@ const MOCK_SNACKS = [
     { id: 404, name: "Truffle Potato Chips", price: 180, image: "https://images.unsplash.com/photo-1563013734-523ca8ea971ad?auto=format&fit=crop&q=80&w=400", type: "Solo" as const },
 ];
 
+import { supabase } from '../lib/supabase';
+
 export const DiscoverScreen = ({ navigation }: any) => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [products, setProducts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const { addToCart } = useCart();
     const { showNotification } = useNotification();
     
-    const currentSnack = MOCK_SNACKS[currentIndex];
+    useEffect(() => {
+        const fetchTrending = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .limit(10);
+                if (data) setProducts(data);
+            } catch (err) {
+                console.error('Discover fetch error:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTrending();
+    }, []);
+
+    const currentSnack = products[currentIndex];
 
     const handleSwipe = (liked: boolean) => {
         if (liked && currentSnack) {
-            addToCart({ ...currentSnack, qty: 1 });
+            if (Platform.OS !== 'web') {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+            addToCart({ 
+                id: currentSnack.id, 
+                name: currentSnack.name, 
+                price: currentSnack.price_solo, 
+                qty: 1, 
+                type: 'Solo' 
+            });
             showNotification(`${currentSnack.name} added to cart! 💖`, "success");
         }
         
-        if (currentIndex < MOCK_SNACKS.length - 1) {
+        if (currentIndex < products.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
-            setCurrentIndex(MOCK_SNACKS.length); // End of list
+            setCurrentIndex(products.length);
         }
     };
 
@@ -49,31 +80,38 @@ export const DiscoverScreen = ({ navigation }: any) => {
             </View>
 
             <View className="flex-1 items-center justify-center p-6">
-                {currentIndex >= MOCK_SNACKS.length ? (
+                {loading ? (
+                    <ActivityIndicator size="large" color="#5A189A" />
+                ) : currentIndex >= products.length ? (
                     <View className="items-center">
-                        <Text className="text-white font-black text-2xl mb-2">You're all caught up!</Text>
-                        <Text className="text-gray-400 font-medium text-center">We'll find more trending snacks for you soon.</Text>
-                        <TouchableOpacity onPress={() => setCurrentIndex(0)} className="mt-8 bg-brand-primary px-8 py-4 rounded-full">
-                            <Text className="text-white font-black">Reload Stack</Text>
+                        <Text className="text-white font-black text-2xl mb-2 text-center">You're all caught up!</Text>
+                        <Text className="text-gray-400 font-medium text-center px-8">We'll find more trending items for you soon based on your neighborhood loops.</Text>
+                        <TouchableOpacity onPress={() => setCurrentIndex(0)} className="mt-8 bg-brand-primary px-10 py-4 rounded-full">
+                            <Text className="text-white font-black uppercase tracking-wider">Reload Stack</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
                     <View className="w-full h-[60vh] bg-ui-surface rounded-[40px] overflow-hidden shadow-2xl border border-gray-800 relative">
-                        <Image source={{ uri: currentSnack.image }} className="absolute inset-0 w-full h-full bg-gray-900 opacity-90" />
+                        {currentSnack.image_url ? (
+                            <Image source={{ uri: currentSnack.image_url }} className="absolute inset-0 w-full h-full bg-gray-900 opacity-90" />
+                        ) : (
+                            <View className="absolute inset-0 w-full h-full bg-gray-900 items-center justify-center">
+                                <ShoppingBag size={80} color="#333" />
+                            </View>
+                        )}
                         
-                        {/* Gradient overlay for text readability */}
-                        <View className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black to-transparent" />
+                        <View className="absolute inset-x-0 bottom-0 h-1/2 bg-black/60" />
                         
                         <View className="absolute bottom-10 left-6 right-6">
-                            <Text className="text-brand-primary font-black text-xs uppercase tracking-widest mb-2 bg-black/50 self-start px-3 py-1 rounded-full border border-brand-primary/50">Trending Now</Text>
-                            <Text className="text-white font-black text-4xl mb-1">{currentSnack.name}</Text>
-                            <Text className="text-white/80 font-bold text-xl">₹{currentSnack.price}</Text>
+                            <Text className="text-brand-primary font-black text-[10px] uppercase tracking-widest mb-2 bg-black/50 self-start px-3 py-1.5 rounded-full border border-brand-primary/50">🔥 Trending in Koramangala</Text>
+                            <Text className="text-white font-black text-4xl mb-1 tracking-tighter" numberOfLines={2}>{currentSnack.name}</Text>
+                            <Text className="text-white/80 font-bold text-xl">₹{currentSnack.price_solo}</Text>
                         </View>
                     </View>
                 )}
             </View>
 
-            {currentIndex < MOCK_SNACKS.length && (
+            {currentIndex < products.length && !loading && (
                 <View className="flex-row justify-center items-center pb-12 gap-8">
                     <TouchableOpacity 
                         onPress={() => handleSwipe(false)}

@@ -35,6 +35,7 @@ import { useCart } from '../lib/CartContext';
 import { useLocation } from '../lib/LocationContext';
 import { useNotification } from '../lib/NotificationContext';
 import { useTheme } from '../lib/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MOCK_PRODUCTS = [
     { id: 1, name: "Alphonso Mangoes (1kg)", price_solo: 499, price_loop: 399, image_url: "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&q=80&w=800", category: "Fresh", weight: "1kg", is_in_stock: true },
@@ -55,11 +56,22 @@ export default function HomeScreen({ navigation }: any) {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [showSeeder, setShowSeeder] = useState(false);
+  const [userBuilding, setUserBuilding] = useState<any>(null);
+  const [isServicable, setIsServicable] = useState(true);
+  const [nearbyWarehouse, setNearbyWarehouse] = useState<string | null>(null);
+
+  const checkServiceability = async (lat: number, lng: number) => {
+      // Mock geofencing check against warehouse schema
+      // In production, this would be a Supabase RPC call using PostGIS
+      const isNear = true; // Simulating successful check
+      setIsServicable(isNear);
+      setNearbyWarehouse('wh_indiranagar_01');
+  };
   const [sortMode, setSortMode] = useState<'default' | 'low' | 'high' | 'popular'>('default');
   const isProduction = false; // Toggle this to true before App Store submission
   const { startSimulation } = useHapticArrival();
   const { cartItems, addToCart } = useCart();
-  const { isServicable, activeWarehouse, setUserLocation } = useLocation();
+  const { isServicable: isServicableFromContext, activeWarehouse, setUserLocation, userLocation } = useLocation(); // Renamed to avoid conflict
   const { showNotification } = useNotification();
   const { isDarkMode } = useTheme();
   
@@ -130,8 +142,24 @@ export default function HomeScreen({ navigation }: any) {
     const timer = setTimeout(() => {
       if (searchQuery) fetchProducts(activeCategory, searchQuery);
     }, 500);
+
+    const loadBuildingAndCheckServiceability = async () => {
+        try {
+            const storedBuilding = await AsyncStorage.getItem('@joinzo_user_building');
+            if (storedBuilding) {
+                setUserBuilding(JSON.parse(storedBuilding));
+            }
+            if (userLocation) { // Using userLocation from useLocation hook
+                checkServiceability(userLocation.lat, userLocation.lng);
+            }
+        } catch (err) {
+            console.error("Error loading building or checking serviceability:", err);
+        }
+    };
+    loadBuildingAndCheckServiceability();
+
     return () => clearTimeout(timer);
-  }, [searchQuery, activeCategory]);
+  }, [searchQuery, activeCategory, userLocation]); // Added userLocation to dependencies
 
   const handleCategoryPress = useCallback((cat: string) => {
     setActiveCategory(cat);
@@ -158,12 +186,12 @@ export default function HomeScreen({ navigation }: any) {
             </View>
             <View className="flex-row items-center">
               <Text className={`${theme.textPrimary} font-black text-2xl tracking-tighter mr-2`}>JOINZO</Text>
-              {isServicable && <CountdownTimer minutes={10} />}
+              {isServicableFromContext && <CountdownTimer minutes={10} />}
             </View>
             <View className="flex-row items-center mt-2">
-              <MapPin size={12} color={isServicable ? "#5A189A" : "#EF4444"} />
-              <Text className={`${theme.textSecondary} text-xs ml-1 font-medium`}>
-                {isServicable ? `From ${activeWarehouse?.name}` : 'Out of delivery zone'}
+              <MapPin size={12} color={isServicableFromContext ? "#5A189A" : "#EF4444"} />
+              <Text className={`${theme.textSecondary} text-xs ml-1 font-black uppercase tracking-tighter`}>
+                {userBuilding ? userBuilding.name : (isServicableFromContext ? activeWarehouse?.name : 'Out of delivery zone')}
               </Text>
             </View>
           </View>
@@ -190,7 +218,7 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         </View>
 
-        {isServicable ? (
+        {isServicableFromContext ? (
           <>
             {/* Sticky Search Bar */}
             <View className={`px-4 pb-3 shadow-sm z-10 ${theme.bg}`}>
@@ -325,6 +353,62 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
               )}
 
+              {/* NEIGHBORS ORDERING NOW (Building Leaderboard Lite) */}
+              <View className="mt-8 px-4">
+                <View className="flex-row items-center justify-between mb-4">
+                  <View className="flex-row items-center">
+                    <Text className={`${theme.textPrimary} font-black text-lg tracking-tighter`}>Neighbors Ordering Now</Text>
+                    <View className="ml-2 bg-green-500 w-2 h-2 rounded-full animate-pulse" />
+                  </View>
+                </View>
+                <View className={`${theme.surface} border ${theme.border} p-5 rounded-[32px] shadow-sm`}>
+                    <View className="flex-row items-center mb-6">
+                        <MapPin size={18} color="#5A189A" />
+                        <View className="ml-3 flex-1">
+                            <Text className="text-brand-primary font-black text-[10px] uppercase tracking-widest">
+                                {isServicable ? '⚡ Serving Your Community' : '🚫 Outside Delivery Zone'}
+                            </Text>
+                            <Text style={{ color: theme.textPrimary }} className="font-black text-lg tracking-tighter" numberOfLines={1}>
+                                {userBuilding?.name || 'Loading location...'}
+                            </Text>
+                        </View>
+                        <TouchableOpacity onPress={() => navigation.navigate('BuildingSelection')} className="bg-brand-primary/10 px-4 py-2 rounded-full">
+                            <Text className="text-brand-primary font-black text-[10px] uppercase">Change</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {!isServicable && (
+                        <View className="bg-red-500/10 p-4 rounded-3xl mb-6 border border-red-500/20">
+                            <Text className="text-red-600 font-bold text-xs text-center">Currently, we aren't delivering to this area. Stay tuned!</Text>
+                        </View>
+                    )}
+                    {[
+                        { name: "Rahul S.", items: "Milk, Bread", time: "2m ago", savings: "₹45" },
+                        { name: "Priya M.", items: "Mangoes, Curd", time: "5m ago", savings: "₹120" },
+                        { name: "Suresh K.", items: "Coke, Chips", time: "8m ago", savings: "₹30" }
+                    ].map((n, i) => (
+                        <View key={i} className={`flex-row items-center justify-between ${i !== 2 ? 'mb-4 pb-4 border-b border-brand-primary/5' : ''}`}>
+                            <View className="flex-row items-center">
+                                <View className="w-8 h-8 rounded-full bg-brand-primary/10 items-center justify-center mr-3">
+                                    <User size={14} color="#5A189A" />
+                                </View>
+                                <View>
+                                    <Text className={`${theme.textPrimary} font-bold text-xs`}>{n.name}</Text>
+                                    <Text className="text-gray-400 text-[10px] uppercase font-black">{n.items}</Text>
+                                </View>
+                            </View>
+                            <View className="items-end">
+                                <Text className="text-brand-primary font-black text-[10px]">{n.savings} Saved</Text>
+                                <Text className="text-gray-400 text-[8px] uppercase font-black">{n.time}</Text>
+                            </View>
+                        </View>
+                    ))}
+                    <TouchableOpacity className="mt-4 bg-brand-primary/5 py-3 rounded-2xl items-center">
+                        <Text className="text-brand-primary font-black text-[10px] uppercase tracking-widest">Join Building Leaderboard</Text>
+                    </TouchableOpacity>
+                </View>
+              </View>
+
               {/* LIVE PRICE DROP ROULETTE */}
               <PriceDropRoulette />
 
@@ -360,6 +444,7 @@ export default function HomeScreen({ navigation }: any) {
                     currentMembers={3}
                     neededMembers={5}
                     discount="30%"
+                    teamId="organic-milk-402"
                   />
                 </TouchableOpacity>
               </View>

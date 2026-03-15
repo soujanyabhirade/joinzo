@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, ActivityIndicator } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { ShoppingBag, MapPin, ChevronRight, Info, Clock, CheckCircle, Truck, Zap, ShieldCheck, CreditCard, Smartphone, Wallet, Users, Recycle, Gift, ChevronLeft } from 'lucide-react-native';
 import Map, { Marker } from '../components/Map';
 import { CountdownTimer } from '../components/CountdownTimer';
@@ -145,7 +146,8 @@ export const CheckoutScreen = ({ navigation }: any) => {
                     product_id: String(item.id),
                     quantity: item.qty,
                     price_at_order: item.price,
-                    product_name: item.name
+                    product_name: item.name,
+                    type: item.type
                 }));
                 await supabase.from('order_items').insert(orderItemsData);
             }
@@ -159,6 +161,9 @@ export const CheckoutScreen = ({ navigation }: any) => {
                 }
                 clearCart();
                 setShowPayment(false);
+                if (Platform.OS !== 'web') {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                }
                 showNotification("Order placed! Pay ₹" + finalTotal + " on delivery.", "success");
                 navigation.navigate("TrackOrder", { triggerConfetti: true, orderId });
             } else {
@@ -178,6 +183,9 @@ export const CheckoutScreen = ({ navigation }: any) => {
                         clearCart();
                         setShowPayment(false);
                         setIsProcessing(false);
+                        if (Platform.OS !== 'web') {
+                            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        }
                         showNotification(`Payment successful! ID: ${response.razorpay_payment_id}`, "success");
                         navigation.navigate("TrackOrder", { triggerConfetti: true, orderId });
                     },
@@ -506,9 +514,10 @@ export const CheckoutScreen = ({ navigation }: any) => {
                         {/* Payment Options */}
                         <View className="gap-3 mb-6">
                             {[
-                                { id: 'upi', name: 'UPI (GPay, PhonePe)', icon: Smartphone },
-                                { id: 'card', name: 'Credit / Debit Card', icon: CreditCard },
-                                { id: 'wallet', name: 'Joinzo Wallet', icon: Wallet }
+                                { id: 'upi', name: 'UPI (GPay, PhonePe)', icon: Smartphone, subtitle: 'Razorpay Secure' },
+                                { id: 'card', name: 'Credit / Debit Card', icon: CreditCard, subtitle: 'Razorpay Secure' },
+                                { id: 'wallet', name: 'Joinzo Wallet', icon: Wallet, subtitle: 'In-app Balance' },
+                                { id: 'cod', name: 'Cash / Pay on Delivery', icon: Truck, subtitle: 'Pay when order arrives' }
                             ].map((method) => (
                                 <View key={method.id} className="mb-2">
                                     <TouchableOpacity
@@ -520,7 +529,17 @@ export const CheckoutScreen = ({ navigation }: any) => {
                                             <View className={`w-10 h-10 rounded-full items-center justify-center border ${selectedMethod === method.id ? 'bg-brand-primary border-brand-primary' : 'bg-ui-background border-gray-200'}`}>
                                                 <method.icon size={20} color={selectedMethod === method.id ? "#FFF" : "#5A189A"} />
                                             </View>
-                                            <Text className={`font-bold text-lg ml-4 ${selectedMethod === method.id ? 'text-brand-primary' : 'text-text-primary'}`}>{method.name}</Text>
+                                            <View className="ml-4">
+                                                <Text className={`font-bold text-lg ${selectedMethod === method.id ? 'text-brand-primary' : 'text-text-primary'}`}>{method.name}</Text>
+                                                <View className="flex-row items-center">
+                                                    <Text className="text-text-secondary text-[10px] font-bold uppercase">{method.subtitle}</Text>
+                                                    {(method.id === 'upi' || method.id === 'card') && (
+                                                        <View className="bg-green-100 px-1 rounded ml-2">
+                                                            <Text className="text-green-700 font-black text-[8px] uppercase">Offers Available</Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                            </View>
                                         </View>
                                         {selectedMethod !== 'card' || method.id !== 'card' ? (
                                              <ChevronRight size={20} color={selectedMethod === method.id ? "#5A189A" : "#9CA3AF"} />
