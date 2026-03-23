@@ -36,6 +36,24 @@ export const DiscoverScreen = ({ navigation }: any) => {
             }
         };
         fetchTrending();
+
+        // Subscribe to real-time inventory updates
+        const subscription = supabase
+            .channel('public:products:discover')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+                if (payload.eventType === 'UPDATE') {
+                    setProducts(curr => curr.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p));
+                } else if (payload.eventType === 'INSERT') {
+                    setProducts(curr => [payload.new, ...curr]);
+                } else if (payload.eventType === 'DELETE') {
+                    setProducts(curr => curr.filter(p => p.id !== payload.old.id));
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(subscription);
+        };
     }, []);
 
     const currentSnack = products[currentIndex];

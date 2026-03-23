@@ -35,11 +35,28 @@ export const CheckoutScreen = ({ navigation }: any) => {
     const [promoApplied, setPromoApplied] = useState(false);
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoError, setPromoError] = useState('');
+    const [walletBalance, setWalletBalance] = useState<number>(0);
 
     const { cartItems, getCartTotal, clearCart } = useCart();
     const { isServicable, savedAddresses } = useLocation();
     const { user } = useAuth();
     const { showNotification } = useNotification();
+
+    // Fetch Wallet balance on mount
+    React.useEffect(() => {
+        const fetchWallet = async () => {
+            if (!user) return;
+            try {
+                const { data } = await supabase.from('wallets').select('balance').eq('user_id', user.id).single();
+                if (data) {
+                    setWalletBalance(data.balance);
+                }
+            } catch (err) {
+                console.log("Error fetching wallet balance");
+            }
+        };
+        fetchWallet();
+    }, [user]);
 
     // 1. Base Total
     const total = getCartTotal();
@@ -153,7 +170,44 @@ export const CheckoutScreen = ({ navigation }: any) => {
             }
 
             // 4. Process Payment based on method
-            if (methodId === 'cod') {
+            if (methodId === 'wallet') {
+                if (walletBalance < finalTotal) {
+                    setIsProcessing(false);
+                    Alert.alert("Insufficient Balance", `You have ₹${walletBalance.toFixed(2)} in your Joinzo Cash wallet, but the total is ₹${finalTotal}. Please select another payment method or add funds.`);
+                    return;
+                }
+                
+                // Deduct from wallet
+                if (!isDemoUser) {
+                    const { data: walletData, error: walletErr } = await supabase.from('wallets').select('id, balance').eq('user_id', user?.id).single();
+                    if (walletErr || !walletData) throw new Error("Could not access wallet");
+
+                    const { error: txErr } = await supabase.from('wallet_transactions').insert({
+                        wallet_id: walletData.id,
+                        amount: -finalTotal,
+                        type: 'debit',
+                        description: `Paid for Order #${orderId.slice(0,8)}`,
+                        reference_id: orderId
+                    });
+                    if (txErr) throw txErr;
+
+                    const { error: balErr } = await supabase.from('wallets').update({
+                        balance: walletData.balance - finalTotal,
+                        updated_at: new Date().toISOString()
+                    }).eq('id', walletData.id);
+                    if (balErr) throw balErr;
+
+                    await supabase.from('orders').update({ status: 'confirmed' }).eq('id', orderId);
+                }
+
+                clearCart();
+                setShowPayment(false);
+                if (Platform.OS !== 'web') {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                }
+                showNotification(`Order placed! Paid ₹${finalTotal} from Joinzo Cash.`, "success");
+                navigation.navigate("TrackOrder", { triggerConfetti: true, orderId });
+            } else if (methodId === 'cod') {
                 // Cash on Delivery — no gateway needed
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 if (!isDemoUser) {
@@ -516,7 +570,7 @@ export const CheckoutScreen = ({ navigation }: any) => {
                             {[
                                 { id: 'upi', name: 'UPI (GPay, PhonePe)', icon: Smartphone, subtitle: 'Razorpay Secure' },
                                 { id: 'card', name: 'Credit / Debit Card', icon: CreditCard, subtitle: 'Razorpay Secure' },
-                                { id: 'wallet', name: 'Joinzo Wallet', icon: Wallet, subtitle: 'In-app Balance' },
+                                { id: 'wallet', name: 'Joinzo Cash', icon: Wallet, subtitle: `Balance: ₹${walletBalance.toFixed(2)}` },
                                 { id: 'cod', name: 'Cash / Pay on Delivery', icon: Truck, subtitle: 'Pay when order arrives' }
                             ].map((method) => (
                                 <View key={method.id} className="mb-2">

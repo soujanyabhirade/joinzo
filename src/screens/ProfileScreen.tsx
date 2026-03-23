@@ -6,7 +6,7 @@ import { useLocation } from '../lib/LocationContext';
 import { useNotification } from '../lib/NotificationContext';
 import { supabase } from '../lib/supabase';
 import { useCoins } from '../lib/CoinsContext';
-import { User, LogOut, Settings, CreditCard, HelpCircle, ChevronLeft, Package, RotateCw, Heart, MapPin, Trash2, Zap, Store, Bike, Gift, Bell, ClipboardList, Shield } from 'lucide-react-native';
+import { User, LogOut, Settings, CreditCard, HelpCircle, ChevronLeft, Package, RotateCw, Heart, MapPin, Trash2, Zap, Store, Bike, Gift, Bell, ClipboardList, Shield, Wallet } from 'lucide-react-native';
 
 export const ProfileScreen = ({ navigation }: any) => {
     const { user } = useAuth();
@@ -178,6 +178,10 @@ export const ProfileScreen = ({ navigation }: any) => {
                         <View className="bg-red-500 rounded-full w-5 h-5 items-center justify-center">
                             <Text className="text-white font-black text-[9px]">3</Text>
                         </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => navigation.navigate('Wallet')} className="flex-row items-center p-4 border-b border-gray-50">
+                        <Wallet size={20} color="#5A189A" />
+                        <Text className="text-text-primary font-bold ml-4 flex-1">Joinzo Cash (Wallet)</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('OrderHistory')} className="flex-row items-center p-4 border-b border-gray-50">
                         <ClipboardList size={20} color="#5A189A" />

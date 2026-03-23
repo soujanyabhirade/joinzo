@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  body, #root, [data-expo-container] {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100vh !important;
+  }
+  
   body {
     background-color: #ffffff;
     color: #1f2937;

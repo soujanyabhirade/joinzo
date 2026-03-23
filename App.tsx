@@ -4,7 +4,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Linking from 'expo-linking';
-import { StatusBar, Platform } from 'react-native';
+import { StatusBar, Platform, View } from 'react-native';
 
 // Providers
 import { AuthProvider, useAuth } from './src/lib/AuthContext';
@@ -44,6 +44,7 @@ import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { JoinzoPlusScreen } from './src/screens/JoinzoPlusScreen';
 import { BuildingSelectionScreen } from './src/screens/BuildingSelectionScreen';
 import { PilotDashboard } from './src/screens/PilotDashboard';
+import { WalletScreen } from './src/screens/WalletScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OfflineBanner } from './src/components/OfflineBanner';
@@ -116,6 +117,7 @@ const RootNavigator = () => {
                     <Stack.Screen name="JoinzoPlus" component={JoinzoPlusScreen} />
                     <Stack.Screen name="BuildingSelection" component={BuildingSelectionScreen} />
         <Stack.Screen name="Pilot" component={PilotDashboard} />
+        <Stack.Screen name="Wallet" component={WalletScreen} />
 
                 </>
             ) : (
@@ -137,10 +139,14 @@ export default function App() {
                                 <NotificationProvider>
                                     <StatusBar barStyle="light-content" />
                                     <NavigationContainer>
-                                        <ErrorBoundary>
-                                            <OfflineBanner />
-                                            <RootNavigator />
-                                        </ErrorBoundary>
+                                        <View style={{ flex: 1, flexDirection: 'column' }}>
+                                            <ErrorBoundary>
+                                                <OfflineBanner />
+                                                <View style={{ flex: 1 }}>
+                                                    <RootNavigator />
+                                                </View>
+                                            </ErrorBoundary>
+                                        </View>
                                     </NavigationContainer>
                                 </NotificationProvider>
                             </CoinsProvider>

@@ -38,14 +38,47 @@ import { useTheme } from '../lib/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const MOCK_PRODUCTS = [
-    { id: 1, name: "Alphonso Mangoes (1kg)", price_solo: 499, price_loop: 399, image_url: "https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&q=80&w=800", category: "Fresh", weight: "1kg", is_in_stock: true },
-    { id: 2, name: "Greek Yogurt (500g)", price_solo: 120, price_loop: 85, image_url: "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=800", category: "Dairy", weight: "500g", is_in_stock: true },
-    { id: 3, name: "Premium Oreo Cookies", price_solo: 150, price_loop: 110, image_url: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&q=80&w=800", category: "Snacks", weight: "150g", is_in_stock: true },
-    { id: 4, name: "Classic Coca-Cola (2L)", price_solo: 95, price_loop: 75, image_url: "https://images.unsplash.com/photo-1622483767028-3f66f34a1074?auto=format&fit=crop&q=80&w=800", category: "Drinks", weight: "2L", is_in_stock: true },
-    { id: 5, name: "Organic Spinach", price_solo: 60, price_loop: 45, image_url: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&q=80&w=800", category: "Fresh", weight: "250g", is_in_stock: true },
-    { id: 6, name: "Digestive Biscuits", price_solo: 40, price_loop: 32, image_url: "https://images.unsplash.com/photo-1590080874088-eec64895b423?auto=format&fit=crop&q=80&w=800", category: "Snacks", weight: "200g", is_in_stock: true },
-    { id: 7, name: "Hass Avocados (Pack of 2)", price_solo: 299, price_loop: 249, image_url: "https://images.unsplash.com/photo-1601039676563-f193ff3fbbb2?auto=format&fit=crop&q=80&w=800", category: "Fresh", weight: "2 units", is_in_stock: true },
-    { id: 8, name: "Artisan Sourdough", price_solo: 145, price_loop: 120, image_url: "https://images.unsplash.com/photo-1585478259715-876a23d1ffbb?auto=format&fit=crop&q=80&w=800", category: "Groceries", weight: "400g", is_in_stock: true }
+    // Fresh
+    { id: 1,  name: "Alphonso Mangoes (1kg)", price_solo: 499, price_loop: 399, image_url: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=400&fit=crop&q=80", category: "Fresh", weight: "1kg", is_in_stock: true },
+    { id: 5,  name: "Organic Spinach", price_solo: 60, price_loop: 45, image_url: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&fit=crop&q=80", category: "Fresh", weight: "250g", is_in_stock: true },
+    { id: 7,  name: "Hass Avocados (Pack of 2)", price_solo: 299, price_loop: 249, image_url: "https://images.unsplash.com/photo-1601039676563-f193ff3fbbb2?w=400&fit=crop&q=80", category: "Fresh", weight: "2 units", is_in_stock: true },
+    { id: 9,  name: "Red Onions (1kg)", price_solo: 55, price_loop: 40, image_url: "https://images.unsplash.com/photo-1618512496248-a07fe83e4c44?w=400&fit=crop&q=80", category: "Fresh", weight: "1kg", is_in_stock: true },
+    { id: 10, name: "Tomatoes (500g)", price_solo: 45, price_loop: 32, image_url: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400&fit=crop&q=80", category: "Fresh", weight: "500g", is_in_stock: true },
+    { id: 11, name: "Bananas (Dozen)", price_solo: 60, price_loop: 45, image_url: "https://images.unsplash.com/photo-1587132137056-bfbf0166836e?w=400&fit=crop&q=80", category: "Fresh", weight: "12 pcs", is_in_stock: true },
+    { id: 12, name: "Watermelon (1 pc)", price_solo: 120, price_loop: 90, image_url: "https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=400&fit=crop&q=80", category: "Fresh", weight: "2-3kg", is_in_stock: true },
+
+    // Dairy
+    { id: 2,  name: "Greek Yogurt (500g)", price_solo: 120, price_loop: 85, image_url: "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&fit=crop&q=80", category: "Dairy", weight: "500g", is_in_stock: true },
+    { id: 13, name: "Full Cream Milk (1L)", price_solo: 68, price_loop: 55, image_url: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&fit=crop&q=80", category: "Dairy", weight: "1L", is_in_stock: true },
+    { id: 14, name: "Amul Butter (500g)", price_solo: 240, price_loop: 210, image_url: "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=400&fit=crop&q=80", category: "Dairy", weight: "500g", is_in_stock: true },
+    { id: 15, name: "Farm Fresh Eggs (12 pcs)", price_solo: 120, price_loop: 95, image_url: "https://images.unsplash.com/photo-1582797493098-23d8d0cc6769?w=400&fit=crop&q=80", category: "Dairy", weight: "12 pcs", is_in_stock: true },
+    { id: 16, name: "Cheddar Cheese (200g)", price_solo: 280, price_loop: 230, image_url: "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=400&fit=crop&q=80", category: "Dairy", weight: "200g", is_in_stock: true },
+
+    // Snacks
+    { id: 3,  name: "Premium Oreo Cookies", price_solo: 150, price_loop: 110, image_url: "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=400&fit=crop&q=80", category: "Snacks", weight: "150g", is_in_stock: true },
+    { id: 6,  name: "Digestive Biscuits", price_solo: 40, price_loop: 32, image_url: "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=400&fit=crop&q=80", category: "Snacks", weight: "200g", is_in_stock: true },
+    { id: 17, name: "Lay's Classic Salted", price_solo: 30, price_loop: 22, image_url: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&fit=crop&q=80", category: "Snacks", weight: "90g", is_in_stock: true },
+    { id: 18, name: "Sea Salt Dark Chocolate", price_solo: 299, price_loop: 240, image_url: "https://images.unsplash.com/photo-1511381939415-e44aa117067b?w=400&fit=crop&q=80", category: "Snacks", weight: "100g", is_in_stock: true },
+    { id: 19, name: "Mixed Nuts & Raisins", price_solo: 340, price_loop: 280, image_url: "https://images.unsplash.com/photo-1567586879816-39a8c4cd1f01?w=400&fit=crop&q=80", category: "Snacks", weight: "250g", is_in_stock: true },
+    { id: 20, name: "Popcorn Party Pack", price_solo: 120, price_loop: 90, image_url: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=400&fit=crop&q=80", category: "Snacks", weight: "200g", is_in_stock: true },
+
+    // Drinks
+    { id: 4,  name: "Classic Coca-Cola (2L)", price_solo: 95, price_loop: 75, image_url: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400&fit=crop&q=80", category: "Drinks", weight: "2L", is_in_stock: true },
+    { id: 21, name: "Sparkling Water (6-pack)", price_solo: 180, price_loop: 140, image_url: "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400&fit=crop&q=80", category: "Drinks", weight: "6 x 500ml", is_in_stock: true },
+    { id: 22, name: "Fresh Orange Juice (1L)", price_solo: 150, price_loop: 115, image_url: "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&fit=crop&q=80", category: "Drinks", weight: "1L", is_in_stock: true },
+    { id: 23, name: "Green Tea (25 bags)", price_solo: 180, price_loop: 140, image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&fit=crop&q=80", category: "Drinks", weight: "25 bags", is_in_stock: true },
+
+    // Groceries
+    { id: 8,  name: "Artisan Sourdough Bread", price_solo: 145, price_loop: 120, image_url: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&fit=crop&q=80", category: "Groceries", weight: "400g", is_in_stock: true },
+    { id: 24, name: "Basmati Rice (5kg)", price_solo: 450, price_loop: 380, image_url: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&fit=crop&q=80", category: "Groceries", weight: "5kg", is_in_stock: true },
+    { id: 25, name: "Toor Dal (1kg)", price_solo: 160, price_loop: 130, image_url: "https://images.unsplash.com/photo-1602340875671-2b32d7fbdb63?w=400&fit=crop&q=80", category: "Groceries", weight: "1kg", is_in_stock: true },
+    { id: 26, name: "Extra Virgin Olive Oil (500ml)", price_solo: 550, price_loop: 450, image_url: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&fit=crop&q=80", category: "Groceries", weight: "500ml", is_in_stock: true },
+
+    // Essentials
+    { id: 27, name: "Sanitizer Spray (300ml)", price_solo: 99, price_loop: 75, image_url: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&fit=crop&q=80", category: "Essentials", weight: "300ml", is_in_stock: true },
+    { id: 28, name: "Dish Wash Liquid (750ml)", price_solo: 120, price_loop: 90, image_url: "https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=400&fit=crop&q=80", category: "Essentials", weight: "750ml", is_in_stock: true },
+    { id: 29, name: "Tissues (6-pack)", price_solo: 180, price_loop: 140, image_url: "https://images.unsplash.com/photo-1585421514738-01798e348b17?w=400&fit=crop&q=80", category: "Essentials", weight: "6 x 100 sheets", is_in_stock: true },
+    { id: 30, name: "Shampoo (200ml)", price_solo: 220, price_loop: 175, image_url: "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=400&fit=crop&q=80", category: "Essentials", weight: "200ml", is_in_stock: true },
 ];
 
 export default function HomeScreen({ navigation }: any) {
@@ -91,43 +124,32 @@ export default function HomeScreen({ navigation }: any) {
       headerIcon: isNight ? "#FFFFFF" : "#5A189A",
   };
 
-  const CATEGORY_EMOJIS: Record<string, string> = { All: '🏠', Fresh: '🥬', Snacks: '🍿', Drinks: '🥤', Electronics: '📱', Groceries: '🛒', Essentials: '🧴', Dairy: '🥛' };
+  const CATEGORY_EMOJIS: Record<string, string> = { All: 'ðŸ ', Fresh: 'ðŸ¥¬', Snacks: 'ðŸ¿', Drinks: 'ðŸ¥¤', Electronics: 'ðŸ“±', Groceries: 'ðŸ›’', Essentials: 'ðŸ§´', Dairy: 'ðŸ¥›' };
   const categories = useMemo(() => ["All", "Fresh", "Snacks", "Drinks", "Dairy", "Groceries", "Essentials"], []);
 
   const fetchProducts = useCallback(async (category = activeCategory, query = searchQuery) => {
     setLoading(true);
     try {
-      let req = supabase.from('products').select('*');
+      const { data, error } = await supabase.from('products').select('*');
 
+      if (error && error.code !== 'PGRST116') throw error;
+
+      let allProducts = (data && data.length > 0) ? data : MOCK_PRODUCTS;
+
+      let filtered = allProducts;
       if (category !== "All") {
-        req = req.eq('category', category);
+        filtered = filtered.filter((p: any) => p.category === category);
       }
-
       if (query.trim() !== "") {
-        req = req.ilike('name', `%${query}%`);
+        const q = query.toLowerCase();
+        filtered = filtered.filter((p: any) => p.name.toLowerCase().includes(q));
       }
 
-      const { data, error } = await req;
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        console.log("Supabase Products Fetched:", data.map(p => ({ name: p.name, img: p.image_url })));
-        setProducts(data);
-        setFilteredProducts(data);
-      } else {
-        // Fallback to MOCK_PRODUCTS if DB is empty
-        const fallback = MOCK_PRODUCTS.filter(p => {
-            const matchesCategory = category === "All" || p.category === category;
-            const matchesQuery = query.trim() === "" || p.name.toLowerCase().includes(query.toLowerCase());
-            return matchesCategory && matchesQuery;
-        });
-        setProducts(fallback);
-        setFilteredProducts(fallback);
-      }
+      setProducts(allProducts);
+      setFilteredProducts(filtered);
     } catch (err: any) {
       console.error("Error fetching products:", err);
-      showNotification("Failed to load products from database.", "error");
+      showNotification("Failed to load products.", "error");
     } finally {
       setLoading(false);
     }
@@ -135,12 +157,33 @@ export default function HomeScreen({ navigation }: any) {
 
   useEffect(() => {
     fetchProducts();
+
+    // Subscribe to real-time inventory updates
+    const subscription = supabase
+      .channel('public:products')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          setProducts(curr => curr.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p));
+          setFilteredProducts(curr => curr.map(p => p.id === payload.new.id ? { ...p, ...payload.new } : p));
+        } else if (payload.eventType === 'INSERT') {
+          setProducts(curr => [payload.new, ...curr]);
+          setFilteredProducts(curr => [payload.new, ...curr]);
+        } else if (payload.eventType === 'DELETE') {
+          setProducts(curr => curr.filter(p => p.id !== payload.old.id));
+          setFilteredProducts(curr => curr.filter(p => p.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [fetchProducts]);
 
   // Debounce search effect
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchQuery) fetchProducts(activeCategory, searchQuery);
+      fetchProducts(activeCategory, searchQuery);
     }, 500);
 
     const loadBuildingAndCheckServiceability = async () => {
@@ -253,7 +296,7 @@ export default function HomeScreen({ navigation }: any) {
               <TouchableOpacity 
                 onPress={() => {
                   addToCart({ id: 888, name: "Mystic Munchies Bag", price: 99, qty: 1, type: "Solo" });
-                  showNotification("Mystery Bag added! Open it after delivery 🎉", "success");
+                  showNotification("Mystery Bag added! Open it after delivery ðŸŽ‰", "success");
                 }}
                 className="mx-4 mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 p-5 rounded-3xl flex-row items-center justify-between shadow-lg shadow-brand-primary/40 -z-0"
                 style={{ backgroundColor: '#2E1065' }} // Fallback if tailwind gradient acts up
@@ -264,7 +307,7 @@ export default function HomeScreen({ navigation }: any) {
                     <Text className="text-yellow-400 font-black text-xs ml-2 uppercase tracking-widest">Surprise Inside</Text>
                   </View>
                   <Text className="text-white font-black text-2xl tracking-tighter mt-1">Mystery Bag</Text>
-                  <Text className="text-white/80 font-bold text-xs mt-1 leading-4">Pay <Text className="text-green-400 font-black">₹99</Text> & perfectly usable overstock snacks worth <Text className="line-through">₹250+</Text>!</Text>
+                  <Text className="text-white/80 font-bold text-xs mt-1 leading-4">Pay <Text className="text-green-400 font-black">â‚¹99</Text> & perfectly usable overstock snacks worth <Text className="line-through">â‚¹250+</Text>!</Text>
                 </View>
                 <View className="w-16 h-16 bg-white/10 rounded-2xl items-center justify-center border border-white/20 shadow-inner overflow-hidden">
                     <PackageOpen size={32} color="#FBBF24" />
@@ -279,7 +322,7 @@ export default function HomeScreen({ navigation }: any) {
                     <Text className="text-white font-black text-xs ml-2 uppercase tracking-wider">Welcome Offer</Text>
                   </View>
                   <Text className="text-white font-black text-2xl tracking-tighter mt-1">Free Delivery</Text>
-                  <Text className="text-white/80 font-bold text-xs mt-1">On your first 3 orders above ₹199.</Text>
+                  <Text className="text-white/80 font-bold text-xs mt-1">On your first 3 orders above â‚¹199.</Text>
                 </View>
                 <View className="w-20 h-20 bg-white/20 rounded-full items-center justify-center">
                   <Text className="text-white font-black text-2xl">%</Text>
@@ -313,7 +356,7 @@ export default function HomeScreen({ navigation }: any) {
                       </View>
                       <Text className={`${theme.textPrimary} font-black text-xs leading-4 h-8`} numberOfLines={2}>{p.name}</Text>
                       <View className="flex-row items-center justify-between mt-2">
-                        <Text className="text-brand-primary font-black text-xs">₹{p.price_solo}</Text>
+                        <Text className="text-brand-primary font-black text-xs">â‚¹{p.price_solo}</Text>
                         <View className="bg-brand-primary w-6 h-6 rounded-full items-center justify-center">
                           <Text className="text-white font-black">+</Text>
                         </View>
@@ -366,7 +409,7 @@ export default function HomeScreen({ navigation }: any) {
                         <MapPin size={18} color="#5A189A" />
                         <View className="ml-3 flex-1">
                             <Text className="text-brand-primary font-black text-[10px] uppercase tracking-widest">
-                                {isServicable ? '⚡ Serving Your Community' : '🚫 Outside Delivery Zone'}
+                                {isServicable ? 'âš¡ Serving Your Community' : 'ðŸš« Outside Delivery Zone'}
                             </Text>
                             <Text style={{ color: theme.textPrimary }} className="font-black text-lg tracking-tighter" numberOfLines={1}>
                                 {userBuilding?.name || 'Loading location...'}
@@ -383,9 +426,9 @@ export default function HomeScreen({ navigation }: any) {
                         </View>
                     )}
                     {[
-                        { name: "Rahul S.", items: "Milk, Bread", time: "2m ago", savings: "₹45" },
-                        { name: "Priya M.", items: "Mangoes, Curd", time: "5m ago", savings: "₹120" },
-                        { name: "Suresh K.", items: "Coke, Chips", time: "8m ago", savings: "₹30" }
+                        { name: "Rahul S.", items: "Milk, Bread", time: "2m ago", savings: "â‚¹45" },
+                        { name: "Priya M.", items: "Mangoes, Curd", time: "5m ago", savings: "â‚¹120" },
+                        { name: "Suresh K.", items: "Coke, Chips", time: "8m ago", savings: "â‚¹30" }
                     ].map((n, i) => (
                         <View key={i} className={`flex-row items-center justify-between ${i !== 2 ? 'mb-4 pb-4 border-b border-brand-primary/5' : ''}`}>
                             <View className="flex-row items-center">
@@ -463,7 +506,7 @@ export default function HomeScreen({ navigation }: any) {
                                 ? (isNight ? 'bg-indigo-600 border-indigo-600' : 'bg-brand-primary border-brand-primary')
                                 : `${theme.surface} ${theme.border}`
                         }`}>
-                        <Text className={`font-bold text-sm ${isActive ? 'text-white' : theme.textPrimary}`}>{CATEGORY_EMOJIS[cat] || '📦'} {cat}</Text>
+                        <Text className={`font-bold text-sm ${isActive ? 'text-white' : theme.textPrimary}`}>{CATEGORY_EMOJIS[cat] || 'ðŸ“¦'} {cat}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -489,7 +532,7 @@ export default function HomeScreen({ navigation }: any) {
                     }}
                     className={`px-3 py-1.5 rounded-full mr-2 ${sortMode === 'low' ? 'bg-brand-primary' : `${theme.surface} border ${theme.border}`}`}
                   >
-                    <Text className={`text-xs font-bold ${sortMode === 'low' ? 'text-white' : theme.textPrimary}`}>₹ Low</Text>
+                    <Text className={`text-xs font-bold ${sortMode === 'low' ? 'text-white' : theme.textPrimary}`}>â‚¹ Low</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     onPress={() => {
@@ -498,13 +541,13 @@ export default function HomeScreen({ navigation }: any) {
                     }}
                     className={`px-3 py-1.5 rounded-full mr-2 ${sortMode === 'high' ? 'bg-brand-primary' : `${theme.surface} border ${theme.border}`}`}
                   >
-                    <Text className={`text-xs font-bold ${sortMode === 'high' ? 'text-white' : theme.textPrimary}`}>₹ High</Text>
+                    <Text className={`text-xs font-bold ${sortMode === 'high' ? 'text-white' : theme.textPrimary}`}>â‚¹ High</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     onPress={() => setSortMode('popular')}
                     className={`px-3 py-1.5 rounded-full ${sortMode === 'popular' ? 'bg-brand-primary' : `${theme.surface} border ${theme.border}`}`}
                   >
-                    <Text className={`text-xs font-bold ${sortMode === 'popular' ? 'text-white' : theme.textPrimary}`}>🔥</Text>
+                    <Text className={`text-xs font-bold ${sortMode === 'popular' ? 'text-white' : theme.textPrimary}`}>ðŸ”¥</Text>
                   </TouchableOpacity>
                 </View>
               </View>

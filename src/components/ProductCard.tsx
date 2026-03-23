@@ -20,7 +20,7 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, priceLoop, image, weight, isInStock = true, isExpiringSoon = false, discountedPrice }: ProductCardProps) => {
     const navigation = useNavigation<any>();
-    const [isLoop, setIsLoop] = useState(true);
+    const [isLoop, setIsLoop] = useState(false);
     const [hasVoted, setHasVoted] = useState(false);
     const [votes, setVotes] = useState(42 + (id % 10)); // Mock varied initial votes
     const { addToCart, favorites, toggleFavorite } = useCart();
@@ -89,7 +89,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
                 <View className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-white/40 to-transparent rounded-t-3xl pointer-events-none" />
                 
                 {/* Product Image */}
-                <View className={`items-center justify-center h-32 mb-3 bg-ui-background/50 rounded-2xl overflow-hidden border border-white/50 shadow-inner ${!isInStock ? 'opacity-40' : ''}`}>
+                <View
+                    style={{ position: 'relative', height: 128, marginBottom: 12 }}
+                    className={`bg-ui-background/50 rounded-2xl overflow-hidden border border-white/50 shadow-inner ${!isInStock ? 'opacity-40' : ''}`}
+                >
                     {isExpiringSoon && (
                         <View className="absolute top-0 left-0 right-0 bg-red-500 py-1 items-center justify-center z-10 w-full">
                             <Text className="text-white text-[9px] font-black uppercase tracking-widest">🚨 SECONDS RACK - {Math.floor((id % 50) + 10)}M LEFT</Text>
@@ -97,8 +100,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
                     )}
                     <Image
                         source={{ uri: (image && !imageError) ? image : fallbackImage }}
-                        className="w-full h-full"
-                        resizeMode="contain"
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="cover"
                         onError={() => {
                             console.log(`Image load failed for ${name}: ${image}`);
                             setImageError(true);
@@ -186,11 +189,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ id, name, priceSolo, p
                 {isInStock ? (
                     <TouchableOpacity 
                         onPress={(e) => { e.stopPropagation(); handleAction(); }} 
-                        className={`mt-3 border py-3 rounded-2xl flex-row items-center justify-center ${isLoop ? 'bg-brand-primary border-brand-primary' : 'bg-brand-primary/10 border-brand-primary/30'}`}
+                        className={`mt-3 border py-3 rounded-2xl flex-row items-center justify-center ${isLoop ? 'bg-brand-primary border-brand-primary' : 'bg-brand-primary border-brand-primary'}`}
                     >
-                        {isLoop ? <Users size={18} color="#FFFFFF" /> : <ShoppingCart size={18} color="#5A189A" />}
-                        <Text className={`font-black ml-2 ${isLoop ? 'text-white' : 'text-brand-primary'}`}>
-                            {isLoop ? 'JOIN LOOP' : 'ADD SOLO'}
+                        {isLoop ? <Users size={18} color="#FFFFFF" /> : <ShoppingCart size={18} color="#FFFFFF" />}
+                        <Text className={`font-black ml-2 text-white`}>
+                            {isLoop ? 'JOIN LOOP' : 'ADD TO CART'}
                         </Text>
                     </TouchableOpacity>
                 ) : (
