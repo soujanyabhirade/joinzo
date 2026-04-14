@@ -1,34 +1,119 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text } from 'react-native';
+import { MapContainer, TileLayer, Marker as LeafletMarker, useMap } from 'react-leaflet';
+import L from 'leaflet';
 
-export default function Map({ children, style }: any) {
+// Inject CSS dynamically to avoid Metro bundler issues with relative image paths in leaflet.css
+if (typeof document !== 'undefined') {
+    if (!document.getElementById('leaflet-css-link')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css-link';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+    }
+}
+
+const customIcon = new L.Icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+// Component to dynamically update map center
+function ChangeView({ center }: { center: any }) {
+    const map = useMap();
+    useEffect(() => {
+        if (center) {
+            map.setView([center.latitude, center.longitude], map.getZoom());
+        }
+    }, [center, map]);
+    return null;
+}
+
+export default function Map({ initialRegion, children, style, onRegionChangeComplete }: any) {
+    const defaultCenter = initialRegion || { latitude: 12.9716, longitude: 77.5946 };
+
     return (
-        <View style={[style, { backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }]}>
-            {/* Embed a generic map iframe for visual aesthetics */}
-            <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15555.239330107248!2d77.6146!3d12.9352!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTLCsDU2JzA2LjciTiA3N8KwMzcnMTMuMSJF!5e0!3m2!1sen!2sin!4v1620000000000!5m2!1sen!2sin"
-                width="100%"
-                height="100%"
-                style={{ border: 0, position: 'absolute' }}
-                allowFullScreen={false}
-                loading="lazy"
-            />
-            {/* Overlay the children to let pins sit on top structurally if needed */}
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', justifyContent: 'center', alignItems: 'center' }}>
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.9)', padding: 8, borderRadius: 12, marginBottom: 40, elevation: 2 }}>
-                    <Text style={{ color: '#5A189A', fontWeight: 'bold', fontSize: 12, textAlign: 'center' }}>Live Location Mockup</Text>
-                </View>
+        <View style={style} className="bg-gray-100 overflow-hidden relative">
+            <MapContainer 
+                center={[defaultCenter.latitude, defaultCenter.longitude]} 
+                zoom={15} 
+                style={{ width: '100%', height: '100%', zIndex: 0 }}
+                zoomControl={false}
+            >
+                {/* Modern light map tiles */}
+                <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; OpenStreetMap'
+                />
+                
+                <ChangeView center={initialRegion} />
+                
                 {children}
+
+                {/* Event listener dummy component for drag ends */}
+                {onRegionChangeComplete && <MapEventsHandler onRegionChangeComplete={onRegionChangeComplete} />}
+            </MapContainer>
+            
+            <View className="absolute bottom-2 right-2 bg-white/90 px-2 py-1 rounded-md border border-gray-200 z-[1000] pointer-events-none">
+                <Text className="text-[8px] font-black text-brand-primary uppercase tracking-widest">Free Maps</Text>
             </View>
         </View>
     );
 }
 
-export const Marker = ({ title, description }: any) => {
+// Custom handler for drag events
+function MapEventsHandler({ onRegionChangeComplete }: { onRegionChangeComplete: any }) {
+    const map = useMap();
+    useEffect(() => {
+        const onMoveEnd = () => {
+            const center = map.getCenter();
+            onRegionChangeComplete({
+                latitude: center.lat,
+                longitude: center.lng,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01
+            });
+        };
+        map.on('moveend', onMoveEnd);
+        return () => { map.off('moveend', onMoveEnd); };
+    }, [map, onRegionChangeComplete]);
+    return null;
+}
+
+export const Marker = ({ coordinate, title, children }: any) => {
+    if (!coordinate || typeof window === 'undefined') return null;
+    
+    // If it has children (custom icon like truck)
+    if (children) {
+        const iconHtml = `
+        <div style="display:flex; justify-content:center; align-items:center;">
+          <div style="background:#5A189A; padding:6px; border-radius:50%; border:2px solid white; box-shadow:0px 4px 6px rgba(0,0,0,0.3);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <path d="M10 17h4V5H2v12h3"></path><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"></path><path d="M14 17h1"></path><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle>
+            </svg>
+          </div>
+        </div>`;
+        const divIcon = new L.DivIcon({
+            html: iconHtml,
+            className: 'custom-leaflet-marker',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+        
+        return <LeafletMarker position={[coordinate.latitude, coordinate.longitude]} icon={divIcon} />;
+    }
+    
     return (
-        <View style={{ padding: 8, backgroundColor: 'white', borderRadius: 12, borderWidth: 2, borderColor: '#5A189A', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 }}>
-            <Text style={{ color: '#1F2937', fontWeight: 'bold', fontSize: 12 }}>{title}</Text>
-            {description && <Text style={{ color: '#6B7280', fontSize: 10 }}>{description}</Text>}
-        </View>
+        <LeafletMarker 
+            position={[coordinate.latitude, coordinate.longitude]} 
+            icon={customIcon}
+        >
+        </LeafletMarker>
     );
 };

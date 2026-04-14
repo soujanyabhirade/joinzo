@@ -65,12 +65,10 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
 
     // Supabase Realtime Tracking — subscribes to specific order row
     useEffect(() => {
-        if (!orderId) {
-            // Demo mode: auto-advance timeline with timers
-            const t1 = setTimeout(() => setProgress(2), 8000);
-            const t2 = setTimeout(() => setProgress(3), 20000);
-            const t3 = setTimeout(() => setProgress(4), 35000);
-            return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+        if (!orderId || orderId.startsWith('demo_')) {
+            // Demo mode: auto-advance timeline with timers if we wanted automatic progression
+            // But we have the manual simulate button, so we'll just return cleanly
+            return;
         }
 
         const channel = supabase
@@ -201,7 +199,7 @@ export const TrackOrderScreen = ({ route, navigation }: any) => {
                 {/* Demo Simulator Banner */}
                 {progress < 5 && (
                     <TouchableOpacity
-                        onPress={orderId ? handleSimulate : handleDemoAdvance}
+                        onPress={(orderId && !orderId.startsWith('demo_')) ? handleSimulate : handleDemoAdvance}
                         disabled={isSimulating}
                         className="mb-6 bg-indigo-950 border border-indigo-700 p-4 rounded-3xl flex-row items-center justify-between"
                     >

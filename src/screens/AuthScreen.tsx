@@ -125,6 +125,16 @@ export const AuthScreen = () => {
                             </Text>
                         </TouchableOpacity>
 
+                        <TouchableOpacity
+                            onPress={() => {
+                                signInAsGuest();
+                                showNotification("Demo Mode: Skipping Auth", "info");
+                            }}
+                            className="mt-6 items-center"
+                        >
+                            <Text className="text-gray-400 font-bold text-xs uppercase tracking-widest border border-gray-200 px-4 py-2 rounded-lg bg-gray-50">⚡ Quick Bypass (Dev Mode)</Text>
+                        </TouchableOpacity>
+
                         <Text className="text-text-secondary text-xs text-center mt-4">
                             By continuing, you verify that you are the owner of this email account.
                         </Text>

@@ -293,7 +293,8 @@ export const CheckoutScreen = ({ navigation }: any) => {
                     </View>
 
                     {/* Map Integration */}
-                    <View className="h-32 bg-ui-background rounded-2xl border border-gray-200 mb-4 overflow-hidden">
+                    <Text className="text-text-secondary text-[10px] font-bold uppercase mb-2">Drag map to set exact location</Text>
+                    <View className="h-40 bg-ui-background rounded-2xl border border-gray-200 mb-4 overflow-hidden relative">
                         <Map
                             style={{ flex: 1 }}
                             initialRegion={{
@@ -302,14 +303,18 @@ export const CheckoutScreen = ({ navigation }: any) => {
                                 latitudeDelta: 0.01,
                                 longitudeDelta: 0.01,
                             }}
+                            onRegionChangeComplete={(region: any) => {
+                                // For a real app, you would use a Geocoding API to convert coordinates to an address string here.
+                                // For now, we simulate finding the address:
+                                setApartment(`Dropped Pin (${region.latitude.toFixed(4)}, ${region.longitude.toFixed(4)})`);
+                            }}
                             userInterfaceStyle="dark"
-                        >
-                            <Marker
-                                coordinate={{ latitude: 12.9716, longitude: 77.5946 }}
-                                title="Common Drop Point"
-                                description={`Gate ${gate || "2"}`}
-                            />
-                        </Map>
+                        />
+                        {/* Center Pin Overlay (Doesn't move, map moves under it) */}
+                        <View className="absolute inset-0 items-center justify-center pointer-events-none z-10" style={{ paddingBottom: 24 }}>
+                            <MapPin size={36} color="#5A189A" fill="white" />
+                            <View className="w-1.5 h-1.5 bg-[#5A189A] rounded-full mt-1" />
+                        </View>
                     </View>
 
                     {/* Quick Address Picker */}
