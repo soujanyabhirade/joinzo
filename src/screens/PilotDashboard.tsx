@@ -4,9 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Users, Gift, Share2, TrendingUp, Trophy, ArrowRight } from 'lucide-react-native';
 import { useTheme } from '../lib/ThemeContext';
 import { CONFIG } from '../lib/config';
+import { useNotification } from '../lib/NotificationContext';
 
 export const PilotDashboard = () => {
     const { isDarkMode } = useTheme();
+    const { showNotification } = useNotification();
     
     const handleInvite = async () => {
         try {
@@ -55,7 +57,7 @@ export const PilotDashboard = () => {
                         <Share2 size={24} color="#FFF" />
                         <Text className="text-white font-black text-xs mt-3 uppercase">Invite Gate</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity className="flex-1 bg-purple-100 dark:bg-white/5 p-6 rounded-[32px] items-center">
+                    <TouchableOpacity onPress={() => showNotification("Full leaderboard launching soon! Keep inviting neighbors.", "info")} className="flex-1 bg-purple-100 dark:bg-white/5 p-6 rounded-[32px] items-center">
                         <Gift size={24} color="#5A189A" />
                         <Text className="text-brand-primary font-black text-xs mt-3 uppercase">Rewards</Text>
                     </TouchableOpacity>
@@ -79,7 +81,7 @@ export const PilotDashboard = () => {
                             <Text className="text-brand-primary font-black">{person.points} pts</Text>
                         </View>
                     ))}
-                    <TouchableOpacity className="mt-4 flex-row items-center justify-center">
+                    <TouchableOpacity onPress={() => showNotification("Full leaderboard launching soon! Keep inviting neighbors.", "info")} className="mt-4 flex-row items-center justify-center">
                         <Text className="text-brand-primary font-black text-xs uppercase tracking-widest">View Full Rankings</Text>
                         <ArrowRight size={14} color="#5A189A" className="ml-2" />
                     </TouchableOpacity>

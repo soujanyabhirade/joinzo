@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Platform, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, MapPin, Package, Clock, CheckCircle, XCircle, IndianRupee, Bike, Navigation, TrendingUp, Zap } from 'lucide-react-native';
+import { ChevronLeft, MapPin, Package, Clock, CheckCircle, XCircle, IndianRupee, Bike, Navigation, TrendingUp, Zap, Map } from 'lucide-react-native';
+import * as Location from 'expo-location';
+import * as Linking from 'expo-linking';
 import { useTheme } from '../lib/ThemeContext';
 import { useAuth } from '../lib/AuthContext';
 import { useNotification } from '../lib/NotificationContext';
@@ -40,6 +42,8 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
     const [tab, setTab] = useState<'available' | 'my'>('available');
     const [incomingOrder, setIncomingOrder] = useState<OrderItem | null>(null);
     const [timer, setTimer] = useState(30);
+    const [verifyingOrder, setVerifyingOrder] = useState<OrderItem | null>(null);
+    const [otpInput, setOtpInput] = useState('');
 
     // Earnings stats
     const [todayEarnings, setTodayEarnings] = useState(0);
@@ -102,13 +106,47 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
         // Subscribe to realtime order updates
         const channel = supabase
             .channel('rider-orders')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
                 fetchOrders();
+                const newOrder = payload.new as Record<string, any>;
+                if (newOrder && newOrder.status === 'confirmed' && !newOrder.rider_id) {
+                    // Set incoming order if it doesn't already have one
+                    setIncomingOrder(prev => prev ? prev : newOrder as OrderItem);
+                    setTimer(30);
+                }
             })
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
     }, [fetchOrders]);
+
+    // Location Broadcasting
+    useEffect(() => {
+        let locationSubscription: any;
+        const startTracking = async () => {
+            if (Platform.OS === 'web' || !user || !isOnline) return;
+            const hasActiveDelivery = myDeliveries.some(o => o.status === 'out_for_delivery');
+            if (!hasActiveDelivery) return;
+
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') return;
+
+            locationSubscription = await Location.watchPositionAsync(
+                { accuracy: Location.Accuracy.Balanced, timeInterval: 10000, distanceInterval: 10 },
+                async (loc) => {
+                    if (!user?.id) return;
+                    const { data } = await supabase.from('rider_location').select('id').eq('rider_id', user.id).single();
+                    if (data) {
+                        await supabase.from('rider_location').update({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, updated_at: new Date().toISOString() }).eq('rider_id', user.id);
+                    } else {
+                        await supabase.from('rider_location').insert({ rider_id: user.id, latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+                    }
+                }
+            );
+        };
+        startTracking();
+        return () => { if (locationSubscription) locationSubscription.remove(); };
+    }, [myDeliveries, user, isOnline]);
 
     useEffect(() => {
         let interval: any;
@@ -142,16 +180,50 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
 
     const handleCompleteDelivery = async (orderId: string) => {
         try {
-            const { error } = await supabase
-                .from('orders')
-                .update({ status: 'delivered' })
-                .eq('id', orderId);
-
+            const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', orderId);
             if (error) throw error;
+            
+            // Native instructions requested adding 35 to wallet
+            if (user?.id) {
+                await supabase.from('wallet_transactions').insert({
+                    wallet_id: user.id,
+                    amount: 35,
+                    type: 'credit',
+                    description: `Delivery fee for order #${orderId.slice(0, 6)}`
+                });
+                const { data: walletData } = await supabase.from('wallets').select('balance').eq('user_id', user.id).single();
+                if (walletData) {
+                    await supabase.from('wallets').update({ balance: walletData.balance + 35 }).eq('user_id', user.id);
+                } else {
+                    await supabase.from('wallets').insert({ user_id: user.id, balance: 35 });
+                }
+            }
+
             showNotification("Delivery completed! ₹35 earned 🎉", "success");
             fetchOrders();
         } catch (err: any) {
             showNotification(err.message || "Failed to update", "error");
+        }
+    };
+
+    const verifyOtpAndDeliver = async () => {
+        if (!verifyingOrder) return;
+        const expectedOtp = verifyingOrder.id.slice(-4);
+        if (otpInput === expectedOtp) {
+            await handleCompleteDelivery(verifyingOrder.id);
+            setVerifyingOrder(null);
+            setOtpInput('');
+        } else {
+            showNotification("Invalid OTP. Try again.", "error");
+        }
+    };
+
+    const navigateToAddress = (address: string) => {
+        const url = 'https://maps.google.com/?q=' + encodeURIComponent(address);
+        if (Platform.OS === 'web') {
+            window.open(url, '_blank');
+        } else {
+            Linking.openURL(url);
         }
     };
 
@@ -238,6 +310,37 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
                     </View>
                 </View>
             )}
+
+            {/* OTP VERIFICATION MODAL */}
+            <Modal visible={!!verifyingOrder} transparent animationType="fade">
+                <View className="flex-1 bg-black/60 items-center justify-center p-6">
+                    <View className="bg-white w-full rounded-[32px] p-6 items-center shadow-2xl">
+                        <View className="bg-emerald-100 w-16 h-16 rounded-2xl items-center justify-center mb-4">
+                            <CheckCircle size={32} color="#10B981" />
+                        </View>
+                        <Text className="font-black text-xl text-text-primary text-center">Verify Delivery</Text>
+                        <Text className="text-gray-500 font-bold text-center mt-2 px-4 leading-5 text-sm mb-6">Ask the customer for their 4-digit order PIN.</Text>
+                        
+                        <TextInput
+                            className="bg-gray-50 border border-gray-200 text-center text-3xl font-black w-full py-4 rounded-2xl tracking-[8px] mb-6 shadow-inner"
+                            keyboardType="number-pad"
+                            maxLength={4}
+                            placeholder="••••"
+                            value={otpInput}
+                            onChangeText={setOtpInput}
+                        />
+
+                        <View className="flex-row gap-3 w-full">
+                            <TouchableOpacity onPress={() => { setVerifyingOrder(null); setOtpInput(''); }} className="flex-1 border-2 border-gray-200 py-4 rounded-xl items-center">
+                                <Text className="font-bold text-gray-500">Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={verifyOtpAndDeliver} className="flex-1 bg-brand-primary py-4 rounded-xl items-center shadow-lg shadow-brand-primary/30">
+                                <Text className="font-black text-white px-2">Verify</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#5A189A" />}>
@@ -383,17 +486,17 @@ export const RiderDashboardScreen = ({ navigation }: any) => {
                                             
                                             <TouchableOpacity 
                                                 className="w-full bg-brand-primary py-4 rounded-2xl flex-row items-center justify-center mb-3"
-                                                onPress={() => showNotification("Launching Maps for Cluster...", "info")}
+                                                onPress={() => navigateToAddress(order.delivery_address)}
                                             >
                                                 <Navigation size={18} color="#FFF" />
-                                                <Text className="text-white font-black text-xs uppercase tracking-widest ml-2">Navigate to Cluster</Text>
+                                                <Text className="text-white font-black text-xs uppercase tracking-widest ml-2">Navigate to Address</Text>
                                             </TouchableOpacity>
 
                                             <View className="flex-row justify-between items-center">
                                                 <Text style={{ color: textColor }} className="font-black text-lg">Total: ₹{order.total_amount}</Text>
                                                 {order.status === 'out_for_delivery' && (
                                                     <TouchableOpacity
-                                                        onPress={() => handleCompleteDelivery(order.id)}
+                                                        onPress={() => setVerifyingOrder(order)}
                                                         className="px-5 py-2.5 rounded-2xl flex-row items-center"
                                                         style={{ backgroundColor: '#059669' }}
                                                     >

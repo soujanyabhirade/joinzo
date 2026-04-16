@@ -45,7 +45,10 @@ import { JoinzoPlusScreen } from './src/screens/JoinzoPlusScreen';
 import { BuildingSelectionScreen } from './src/screens/BuildingSelectionScreen';
 import { PilotDashboard } from './src/screens/PilotDashboard';
 import { WalletScreen } from './src/screens/WalletScreen';
+import { PartnerDashboardScreen } from './src/screens/PartnerDashboardScreen';
+import { RiderEarningsScreen } from './src/screens/RiderEarningsScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from './src/lib/supabase';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OfflineBanner } from './src/components/OfflineBanner';
 
@@ -68,8 +71,10 @@ const linking = {
 };
 
 const RootNavigator = () => {
-    const { session, isLoading } = useAuth();
+    const { session, user, isLoading } = useAuth();
     const [showOnboarding, setShowOnboarding] = React.useState<boolean | null>(null);
+    const [role, setRole] = React.useState<string>('consumer');
+    const [isFetchingRole, setIsFetchingRole] = React.useState(true);
 
     React.useEffect(() => {
         const checkOnboarding = async () => {
@@ -79,12 +84,37 @@ const RootNavigator = () => {
         checkOnboarding();
     }, []);
 
-    if (isLoading || showOnboarding === null) {
+    React.useEffect(() => {
+        const fetchRole = async () => {
+            if (user) {
+                const { data } = await supabase.from('user_profiles').select('role').eq('id', user.id).single();
+                if (data && data.role) {
+                    setRole(data.role);
+                }
+            }
+            setIsFetchingRole(false);
+        };
+        fetchRole();
+    }, [user]);
+
+    if (isLoading || showOnboarding === null || (user && isFetchingRole)) {
         return null;
     }
 
+    const initialRoute = !session 
+        ? 'Auth' 
+        : showOnboarding 
+            ? 'Onboarding' 
+            : role === 'partner' 
+                ? 'PartnerDashboard' 
+                : role === 'rider' 
+                    ? 'RiderDashboard' 
+                    : role === 'admin' 
+                        ? 'AdminDashboard' 
+                        : 'Home';
+
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
             {showOnboarding && session ? (
                 <Stack.Screen name="Onboarding" component={OnboardingScreen} />
             ) : null}
@@ -116,6 +146,8 @@ const RootNavigator = () => {
                     <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
                     <Stack.Screen name="JoinzoPlus" component={JoinzoPlusScreen} />
                     <Stack.Screen name="BuildingSelection" component={BuildingSelectionScreen} />
+        <Stack.Screen name="PartnerDashboard" component={PartnerDashboardScreen} />
+        <Stack.Screen name="RiderEarnings" component={RiderEarningsScreen} />
         <Stack.Screen name="Pilot" component={PilotDashboard} />
         <Stack.Screen name="Wallet" component={WalletScreen} />
 

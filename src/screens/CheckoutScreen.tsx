@@ -568,7 +568,12 @@ export const CheckoutScreen = ({ navigation }: any) => {
                     <TouchableOpacity className="flex-1" onPress={() => !isProcessing && setShowPayment(false)} />
                     <View className="bg-ui-background rounded-t-3xl p-6 shadow-xl w-full border-t border-gray-200">
                         <Text className="text-text-primary font-black text-2xl mb-1">Select Payment</Text>
-                        <Text className="text-text-secondary font-bold text-sm mb-6">Total Amount: <Text className="text-brand-primary text-xl tracking-tight">₹{finalTotal}</Text></Text>
+                        <Text className="text-text-secondary font-bold text-sm mb-4">Total Amount: <Text className="text-brand-primary text-xl tracking-tight">₹{finalTotal}</Text></Text>
+
+                        {/* Demo Mode Notice */}
+                        <View className="mb-6 bg-yellow-50 border border-yellow-200 p-3 rounded-2xl shadow-sm">
+                            <Text className="text-yellow-800 font-bold text-xs text-center uppercase tracking-widest">⚡ Demo Mode — No real payment will be charged</Text>
+                        </View>
 
                         {/* Payment Options */}
                         <View className="gap-3 mb-6">

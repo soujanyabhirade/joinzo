@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { ChevronLeft, CreditCard, Plus, Smartphone, Trash2, ShieldCheck, CheckCircle2 } from 'lucide-react-native';
+import { useNotification } from '../lib/NotificationContext';
 
 const INITIAL_CARDS = [
     { id: '1', type: 'VISA', last4: '4242', expiry: '12/25', isDefault: true },
@@ -9,6 +10,7 @@ const INITIAL_CARDS = [
 
 export const PaymentMethodsScreen = ({ navigation }: any) => {
     const [cards, setCards] = useState(INITIAL_CARDS);
+    const { showNotification } = useNotification();
 
     const removeCard = (id: string) => {
         Alert.alert(
@@ -64,7 +66,7 @@ export const PaymentMethodsScreen = ({ navigation }: any) => {
                         </View>
                     ))}
 
-                    <TouchableOpacity className="bg-brand-primary/5 border border-brand-primary/20 border-dashed rounded-3xl p-5 flex-row items-center justify-center mb-10">
+                    <TouchableOpacity onPress={() => showNotification("Card/UPI management coming soon. Use Razorpay at checkout for now.", "info")} className="bg-brand-primary/5 border border-brand-primary/20 border-dashed rounded-3xl p-5 flex-row items-center justify-center mb-10">
                         <Plus size={20} color="#5A189A" />
                         <Text className="text-brand-primary font-black ml-2 uppercase tracking-tight">Add New Card</Text>
                     </TouchableOpacity>
@@ -83,7 +85,7 @@ export const PaymentMethodsScreen = ({ navigation }: any) => {
                         <CheckCircle2 size={20} color="#10B981" />
                     </View>
 
-                    <TouchableOpacity className="bg-brand-primary/5 border border-brand-primary/20 border-dashed rounded-3xl p-5 flex-row items-center justify-center">
+                    <TouchableOpacity onPress={() => showNotification("Card/UPI management coming soon. Use Razorpay at checkout for now.", "info")} className="bg-brand-primary/5 border border-brand-primary/20 border-dashed rounded-3xl p-5 flex-row items-center justify-center">
                         <Plus size={20} color="#5A189A" />
                         <Text className="text-brand-primary font-black ml-2 uppercase tracking-tight">Connect New UPI ID</Text>
                     </TouchableOpacity>

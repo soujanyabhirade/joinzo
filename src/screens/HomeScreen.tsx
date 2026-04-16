@@ -101,7 +101,7 @@ export default function HomeScreen({ navigation }: any) {
       setNearbyWarehouse('wh_indiranagar_01');
   };
   const [sortMode, setSortMode] = useState<'default' | 'low' | 'high' | 'popular'>('default');
-  const isProduction = false; // Toggle this to true before App Store submission
+  const isProduction = process.env.EXPO_PUBLIC_IS_PRODUCTION === 'true'; // Toggle this via environment variables
   const { startSimulation } = useHapticArrival();
   const { cartItems, addToCart } = useCart();
   const { isServicable: isServicableFromContext, activeWarehouse, setUserLocation, userLocation } = useLocation(); // Renamed to avoid conflict
@@ -338,7 +338,7 @@ export default function HomeScreen({ navigation }: any) {
                       <Text className="text-brand-primary text-[8px] font-black uppercase">Buy it again</Text>
                     </View>
                   </View>
-                  <TouchableOpacity>
+                  <TouchableOpacity onPress={() => showNotification("Order History feature coming soon!", "info")}>
                     <Text className="text-brand-primary font-bold text-xs">View History</Text>
                   </TouchableOpacity>
                 </View>
@@ -446,7 +446,7 @@ export default function HomeScreen({ navigation }: any) {
                             </View>
                         </View>
                     ))}
-                    <TouchableOpacity className="mt-4 bg-brand-primary/5 py-3 rounded-2xl items-center">
+                    <TouchableOpacity onPress={() => { navigation.navigate('NeighborhoodPulse'); showNotification("Community leaderboard coming soon!", "info"); }} className="mt-4 bg-brand-primary/5 py-3 rounded-2xl items-center">
                         <Text className="text-brand-primary font-black text-[10px] uppercase tracking-widest">Join Building Leaderboard</Text>
                     </TouchableOpacity>
                 </View>

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingVi
 import { ChevronLeft, Send, Users, MessageSquare, Zap, MapPin } from 'lucide-react-native';
 import { useAuth } from '../lib/AuthContext';
 import { useNotification } from '../lib/NotificationContext';
+import { supabase } from '../lib/supabase';
 
 const MOCK_MESSAGES = [
     { id: '1', user: 'Rahul @ Gate 2', text: 'Anyone seen if the fresh mangoes are good today?', time: '2m ago', isMe: false },
@@ -14,26 +15,62 @@ export const NeighborhoodPulseScreen = ({ navigation }: any) => {
     const { user } = useAuth();
     const { showNotification } = useNotification();
     const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState(MOCK_MESSAGES);
+    const [messages, setMessages] = useState<any[]>(MOCK_MESSAGES);
     const flatListRef = useRef<FlatList>(null);
 
-    const handleSend = () => {
+    useEffect(() => {
+        const fetchMessages = async () => {
+            try {
+                const { data } = await supabase.from('neighborhood_pulse')
+                    .select('*')
+                    .order('created_at', { ascending: true })
+                    .limit(50);
+                if (data && data.length > 0) {
+                    setMessages(data);
+                }
+            } catch(e) { console.error(e); }
+        };
+        fetchMessages();
+
+        const channel = supabase.channel('pulse_updates')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'neighborhood_pulse' }, payload => {
+                setMessages(prev => [...prev, payload.new]);
+                setTimeout(() => { flatListRef.current?.scrollToEnd({ animated: true }); }, 200);
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, []);
+
+    const handleSend = async () => {
         if (!message.trim()) return;
         
+        const tempId = Date.now().toString();
+        const userName = user?.email ? user.email.split('@')[0] : 'Neighbor';
+        
         const newMessage = {
-            id: Date.now().toString(),
-            user: 'You @ Your Gate',
+            id: tempId,
+            user: userName,
             text: message,
             time: 'Just now',
-            isMe: true
+            isMe: true,
+            user_id: user?.id
         };
         
         setMessages([...messages, newMessage]);
         setMessage('');
-        
-        setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+        setTimeout(() => { flatListRef.current?.scrollToEnd({ animated: true }); }, 100);
+
+        try {
+            await supabase.from('neighborhood_pulse').insert({
+                user: userName,
+                text: message,
+                time: 'Just now',
+                user_id: user?.id
+            });
+        } catch(e) {
+            console.error(e);
+        }
     };
 
     return (

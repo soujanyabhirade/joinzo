@@ -1,0 +1,20 @@
+# Supabase project configuration
+# Replace YOUR_PROJECT_REF with your actual Reference ID
+# Found in: Supabase Dashboard → Project Settings → General → Reference ID
+
+[api]
+# Local development port
+port = 54321
+
+[db]
+# Local development port
+port = 54322
+
+[studio]
+port = 54323
+
+[functions]
+# Edge functions configuration
+
+[auth]
+# Auth configuration - uses environment variables in production

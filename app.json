@@ -41,6 +41,29 @@
     },
     "experiments": {
       "baseUrl": "/joinzo"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#5A189A",
+          "sounds": [],
+          "mode": "production"
+        }
+      ],
+      "expo-image-picker",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Joinzo needs your location to broadcast your position during deliveries."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
     }
   }
 }

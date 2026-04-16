@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, RefreshControl } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Bell, ShoppingBag, Gift, Bike, Star, Zap, Megaphone, Trash2 } from 'lucide-react-native';
 import { useTheme } from '../lib/ThemeContext';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/AuthContext';
 
 interface Notification {
     id: string;
@@ -44,8 +46,34 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 
 export const NotificationsScreen = ({ navigation }: any) => {
     const { isDarkMode } = useTheme();
+    const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
     const [refreshing, setRefreshing] = useState(false);
+
+    const fetchNotifications = useCallback(async () => {
+        if (!user) return;
+        setRefreshing(true);
+        try {
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+                
+            if (data && data.length > 0) {
+                // Map DB schema to Notification interface if they match
+                setNotifications(data as Notification[]);
+            }
+        } catch (err) {
+            console.error("Error fetching notifications:", err);
+        } finally {
+            setRefreshing(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        fetchNotifications();
+    }, [fetchNotifications]);
 
     const bgBase = isDarkMode ? '#0A0A0A' : '#F8F9FA';
     const surfaceBg = isDarkMode ? '#121212' : '#FFFFFF';
@@ -55,17 +83,20 @@ export const NotificationsScreen = ({ navigation }: any) => {
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    const markAllRead = () => {
+    const markAllRead = async () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        if (user) {
+            await supabase.from('notifications').update({ read: true }).eq('user_id', user.id);
+        }
     };
 
-    const deleteNotification = (id: string) => {
+    const deleteNotification = async (id: string) => {
         setNotifications(prev => prev.filter(n => n.id !== id));
+        await supabase.from('notifications').delete().eq('id', id);
     };
 
-    const onRefresh = () => {
-        setRefreshing(true);
-        setTimeout(() => setRefreshing(false), 800);
+    const onRefresh = async () => {
+        await fetchNotifications();
     };
 
     return (

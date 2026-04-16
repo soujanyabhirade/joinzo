@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Image, Dimensions } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Zap, ShieldCheck, Clock, Crown, Users } from 'lucide-react-native';
 import { useTheme } from '../lib/ThemeContext';
+import { useNotification } from '../lib/NotificationContext';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ const BENEFITS = [
 
 export const JoinzoPlusScreen = ({ navigation }: any) => {
     const { isDarkMode } = useTheme();
+    const { showNotification } = useNotification();
 
     return (
         <SafeAreaView className={`flex-1 ${isDarkMode ? 'bg-[#0A0A0A]' : 'bg-[#F9FAFB]'}`}>
@@ -87,6 +89,7 @@ export const JoinzoPlusScreen = ({ navigation }: any) => {
             {/* Sticky CTA */}
             <View className={`absolute bottom-0 left-0 right-0 p-6 pt-4 pb-10 ${isDarkMode ? 'bg-[#0A0A0A]/90' : 'bg-white/90'}`} style={{ backdropFilter: 'blur(20px)' } as any}>
                 <TouchableOpacity 
+                    onPress={() => showNotification("Joinzo Plus is coming soon! You'll be notified when subscriptions launch.", "info")}
                     className="bg-brand-primary w-full py-5 rounded-[24px] items-center justify-center shadow-2xl shadow-brand-primary/60"
                 >
                     <Text className="text-white font-black text-lg uppercase italic tracking-wider">Unlock Plus Now</Text>

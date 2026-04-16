@@ -42,3 +42,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# debug and temp files
+*.txt
+*.cjs
+supabase/.temp/
+.agents/
+/tmp/

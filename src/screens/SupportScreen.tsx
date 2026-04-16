@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, LayoutAnimation, Platform, UIManager, Linking } from 'react-native';
 import { ChevronLeft, Search, HelpCircle, MessageCircle, Phone, Mail, ChevronDown, ChevronUp, Package, CreditCard, User, LifeBuoy } from 'lucide-react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -82,11 +82,11 @@ export const SupportScreen = ({ navigation }: any) => {
                 {/* Contact Options */}
                 <View className="px-6 mb-8 flex-row justify-between">
                     {[
-                        { label: 'Live Chat', icon: MessageCircle, color: '#5A189A', bg: 'bg-purple-50' },
-                        { label: 'Call Us', icon: Phone, color: '#10B981', bg: 'bg-green-50' },
-                        { label: 'Email', icon: Mail, color: '#3B82F6', bg: 'bg-blue-50' },
+                        { label: 'Live Chat', icon: MessageCircle, color: '#5A189A', bg: 'bg-purple-50', action: () => navigation.navigate('NeighborhoodPulse') },
+                        { label: 'Call Us', icon: Phone, color: '#10B981', bg: 'bg-green-50', action: () => Linking.openURL('tel:+918069179990') },
+                        { label: 'Email', icon: Mail, color: '#3B82F6', bg: 'bg-blue-50', action: () => Linking.openURL('mailto:support@joinzo.app') },
                     ].map((item, i) => (
-                        <TouchableOpacity key={i} className={`w-[30%] ${item.bg} p-4 rounded-3xl items-center border border-black/5`}>
+                        <TouchableOpacity key={i} onPress={item.action} className={`w-[30%] ${item.bg} p-4 rounded-3xl items-center border border-black/5`}>
                             <item.icon size={24} color={item.color} />
                             <Text className="text-[10px] font-black mt-2 text-text-primary uppercase tracking-tighter">{item.label}</Text>
                         </TouchableOpacity>

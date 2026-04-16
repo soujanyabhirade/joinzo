@@ -145,6 +145,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
         { key: 'community', label: '🏘️ Communities' },
         { key: 'inventory', label: '📦 Inventory' },
         { key: 'partners', label: `🏪 Partners (${stats.pendingPartners})` },
+        { key: 'riders', label: `🛵 Riders (${stats.pendingRiders})` },
     ];
 
     return (

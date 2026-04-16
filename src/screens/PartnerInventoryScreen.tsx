@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, TextInput, Switch, Alert, Platform, Modal, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, TextInput, Switch, Alert, Platform, Modal, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Plus, Package, Edit3, Trash2, ToggleLeft, ToggleRight, Search, Tag, IndianRupee, Box } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { useNotification } from '../lib/NotificationContext';
@@ -29,21 +30,66 @@ const ProductFormModal = ({ visible, product, onClose, onSave }: {
     const [priceSolo, setPriceSolo] = useState(product?.price_solo?.toString() || '');
     const [priceLoop, setPriceLoop] = useState(product?.price_loop?.toString() || '');
     const [category, setCategory] = useState(product?.category || 'Grocery');
+    const [imageUrl, setImageUrl] = useState(product?.image_url || '');
     const [saving, setSaving] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     useEffect(() => {
         if (product) {
             setName(product.name); setPriceSolo(product.price_solo.toString());
             setPriceLoop(product.price_loop.toString()); setCategory(product.category);
+            setImageUrl(product.image_url || '');
         } else {
-            setName(''); setPriceSolo(''); setPriceLoop(''); setCategory('Grocery');
+            setName(''); setPriceSolo(''); setPriceLoop(''); setCategory('Grocery'); setImageUrl('');
         }
     }, [product, visible]);
+
+    const uploadImage = async (fileBody: Blob | File) => {
+        setUploadingImage(true);
+        try {
+            const fileName = `${Date.now()}_img.jpg`;
+            const { data, error } = await supabase.storage.from('product-images').upload(fileName, fileBody);
+            if (error) throw error;
+            
+            const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName);
+            setImageUrl(publicUrl);
+        } catch (e: any) {
+            Alert.alert("Upload Error", e.message);
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
+    const pickImage = async () => {
+        if (Platform.OS === 'web') {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = async (e: any) => {
+                const file = e.target.files[0];
+                if (file) await uploadImage(file);
+            };
+            input.click();
+        } else {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
+
+            if (!result.canceled && result.assets[0]) {
+                const response = await fetch(result.assets[0].uri);
+                const blob = await response.blob();
+                await uploadImage(blob);
+            }
+        }
+    };
 
     const handleSave = () => {
         if (!name || !priceSolo) { Alert.alert("Error", "Name and Solo price are required."); return; }
         setSaving(true);
-        onSave({ name, price_solo: Number(priceSolo), price_loop: Number(priceLoop || priceSolo), category });
+        onSave({ name, price_solo: Number(priceSolo), price_loop: Number(priceLoop || priceSolo), category, image_url: imageUrl });
         setSaving(false);
     };
 
@@ -57,6 +103,24 @@ const ProductFormModal = ({ visible, product, onClose, onSave }: {
                     </TouchableOpacity>
                 </View>
                 <ScrollView className="flex-1 p-6">
+                    <View className="mb-5 items-center">
+                        <TouchableOpacity 
+                            onPress={pickImage} 
+                            disabled={uploadingImage}
+                            className="w-24 h-24 rounded-2xl bg-white border border-gray-200 items-center justify-center overflow-hidden shadow-sm"
+                        >
+                            {imageUrl ? (
+                                <Image source={{ uri: imageUrl }} className="w-full h-full" />
+                            ) : uploadingImage ? (
+                                <ActivityIndicator color="#5A189A" />
+                            ) : (
+                                <View className="items-center">
+                                    <Plus size={24} color="#9CA3AF" />
+                                    <Text className="text-[10px] text-gray-400 mt-1 font-bold">PHOTO</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                     <Text className="text-xs font-black text-gray-400 uppercase tracking-[2px] mb-2 ml-1">Product Name *</Text>
                     <TextInput
                         className="bg-white border border-gray-100 p-5 rounded-3xl font-bold mb-5 shadow-sm"
@@ -205,50 +269,61 @@ export const PartnerInventoryScreen = ({ navigation }: any) => {
 
     const renderProduct = ({ item }: { item: Product }) => (
         <View style={{ backgroundColor: surfaceBg, borderColor, borderWidth: 1 }}
-            className="p-4 rounded-3xl mb-3 shadow-sm">
-            <View className="flex-row items-center justify-between">
-                <View className="flex-1 pr-3">
-                    <Text style={{ color: textColor }} className="font-black text-sm leading-5" numberOfLines={1}>{item.name}</Text>
-                    <View className="flex-row items-center mt-1.5 gap-3">
+            className="p-4 rounded-3xl mb-3 shadow-sm flex-row items-center">
+            
+            <View className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 mr-4 items-center justify-center overflow-hidden">
+                {item.image_url ? (
+                    <Image source={{ uri: item.image_url }} className="w-full h-full" />
+                ) : (
+                    <Box size={24} color="#D1D5DB" />
+                )}
+            </View>
+
+            <View className="flex-1 pr-3">
+                <Text style={{ color: textColor }} className="font-black text-sm leading-5" numberOfLines={1}>{item.name}</Text>
+                <View className="flex-row items-center mt-1.5 gap-3">
+                    <View className="flex-row items-center">
+                        <IndianRupee size={10} color="#5A189A" />
+                        <Text className="text-brand-primary font-black text-sm">{item.price_solo}</Text>
+                        <Text style={{ color: subTextColor }} className="text-xs font-medium ml-1">solo</Text>
+                    </View>
+                    {item.price_loop !== item.price_solo && (
                         <View className="flex-row items-center">
-                            <IndianRupee size={10} color="#5A189A" />
-                            <Text className="text-brand-primary font-black text-sm">{item.price_solo}</Text>
-                            <Text style={{ color: subTextColor }} className="text-xs font-medium ml-1">solo</Text>
+                            <IndianRupee size={10} color="#10B981" />
+                            <Text className="text-green-600 font-black text-sm">{item.price_loop}</Text>
+                            <Text style={{ color: subTextColor }} className="text-xs font-medium ml-1">loop</Text>
                         </View>
-                        {item.price_loop !== item.price_solo && (
-                            <View className="flex-row items-center">
-                                <IndianRupee size={10} color="#10B981" />
-                                <Text className="text-green-600 font-black text-sm">{item.price_loop}</Text>
-                                <Text style={{ color: subTextColor }} className="text-xs font-medium ml-1">loop</Text>
-                            </View>
-                        )}
-                    </View>
-                    <View className="mt-2 flex-row items-center">
-                        <View style={{ backgroundColor: item.is_in_stock ? '#F0FDF4' : '#FEF2F2', borderColor: item.is_in_stock ? '#BBF7D0' : '#FECACA' }}
-                            className="px-2 py-0.5 rounded-full border">
-                            <Text style={{ color: item.is_in_stock ? '#15803D' : '#DC2626' }} className="text-[9px] font-black uppercase tracking-widest">
-                                {item.is_in_stock ? '● In Stock' : '● Out of Stock'}
-                            </Text>
-                        </View>
-                        <Text style={{ color: subTextColor }} className="text-[9px] font-bold ml-2 uppercase">{item.category}</Text>
-                    </View>
+                    )}
                 </View>
-                <View className="flex-row items-center gap-2">
-                    <Switch
-                        value={item.is_in_stock}
-                        onValueChange={() => handleToggleStock(item)}
-                        trackColor={{ false: '#E5E7EB', true: '#5A189A' }}
-                        thumbColor="#FFF"
-                    />
+                <View className="mt-2 flex-row items-center">
+                    <View style={{ backgroundColor: item.is_in_stock ? '#F0FDF4' : '#FEF2F2', borderColor: item.is_in_stock ? '#BBF7D0' : '#FECACA' }}
+                        className="px-2 py-0.5 rounded-full border">
+                        <Text style={{ color: item.is_in_stock ? '#15803D' : '#DC2626' }} className="text-[9px] font-black uppercase tracking-widest">
+                            {item.is_in_stock ? '● In Stock' : '● Out of Stock'}
+                        </Text>
+                    </View>
+                    <Text style={{ color: subTextColor }} className="text-[9px] font-bold ml-2 uppercase">{item.category}</Text>
+                </View>
+            </View>
+            
+            <View className="items-end justify-between py-1 gap-4">
+                <Switch
+                    value={item.is_in_stock}
+                    onValueChange={() => handleToggleStock(item)}
+                    trackColor={{ false: '#E5E7EB', true: '#5A189A' }}
+                    thumbColor="#FFF"
+                    style={{ transform: [{ scale: 0.8 }] }}
+                />
+                <View className="flex-row gap-2">
                     <TouchableOpacity onPress={() => { setEditingProduct(item); setIsModalVisible(true); }}
                         style={{ backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F3F4F6' }}
-                        className="w-9 h-9 rounded-xl items-center justify-center">
-                        <Edit3 size={16} color="#5A189A" />
+                        className="w-8 h-8 rounded-xl items-center justify-center">
+                        <Edit3 size={14} color="#5A189A" />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleDelete(item)}
                         style={{ backgroundColor: '#FEF2F2' }}
-                        className="w-9 h-9 rounded-xl items-center justify-center">
-                        <Trash2 size={16} color="#DC2626" />
+                        className="w-8 h-8 rounded-xl items-center justify-center">
+                        <Trash2 size={14} color="#DC2626" />
                     </TouchableOpacity>
                 </View>
             </View>
